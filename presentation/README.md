@@ -25,3 +25,9 @@ Target 50–60 minutes, subject to professor's schedule.
 - Added diagram panels on slides 7 (data workflow), 11 (warehouse/lake/lakehouse), and 22 (three-paper synthesis).
 - Preserved 27 draft speaker notes and exactly 3 scenario slides.
 - Remaining: detailed visual QA, deeper distributed processing content, source/APA verification and rehearsed timing. This is a revised draft, not final signoff.
+
+## Modern Data Systems redesign — additional pass
+- Converted eight technical slides (5 Vs, analytics types, ETL/ELT, processing modes, Paper 1 pipeline, Paper 3 infrastructure, Bronze/Silver/Gold, conclusion) into editable cards.
+- Reframed three scenario slides as dark discussion panels while keeping questions unchanged.
+- Preserved the existing slide sequence and speaker notes. Databricks simulation remains deferred.
+- Next: check rendered slides and accessibility/overflow; finalize academic references and verify exact figures before classroom use.
