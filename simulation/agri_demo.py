@@ -40,8 +40,8 @@ valid = (F.col("province").isin(provinces) &
          F.col("commodity").isin(commodities) &
          F.col("area_ha").isNotNull() & (F.col("area_ha") > 0) &
          F.col("production_mt").isNotNull() & (F.col("production_mt") >= 0))
-rejected = bronze.filter(~valid)
-silver = bronze.filter(valid).dropDuplicates(["record_id"])
+rejected = bronze.filter(~F.coalesce(valid, F.lit(False)))
+silver = bronze.filter(F.coalesce(valid, F.lit(False))).dropDuplicates(["record_id"])
 print("Rejected dirty rows:", rejected.count())
 print("Silver valid unique rows:", silver.count())
 assert bronze.count() == N + 1
