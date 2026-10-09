@@ -19,3 +19,9 @@ Target 50–60 minutes, subject to professor's schedule.
 - Exactly 3 scenario-based questions are included.
 - Next: improve visual diagrams, verify in-editor formatting, APA references and presentation timing.
 - Databricks simulation is deferred by request.
+
+## Visual redesign pass
+- Applied navy/off-white theme, cyan accent, unified typography to all 27 slides.
+- Added diagram panels on slides 7 (data workflow), 11 (warehouse/lake/lakehouse), and 22 (three-paper synthesis).
+- Preserved 27 draft speaker notes and exactly 3 scenario slides.
+- Remaining: detailed visual QA, deeper distributed processing content, source/APA verification and rehearsed timing. This is a revised draft, not final signoff.
