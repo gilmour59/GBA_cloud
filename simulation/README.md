@@ -10,3 +10,10 @@ Synthetic records only; do not commit or upload sensitive real farmer data. See 
 ## Getting started
 
 Follow the [Databricks Rice CSV upload guide](DATABRICKS_UPLOAD_GUIDE.md) to upload `rice_raw_synthetic.csv` and verify the expected 437 records before starting the Silver/Gold notebook work.
+
+## Verified notebook progress and speaking script
+
+- [Executed lab log](EXECUTED_LAB_LOG.md): completed ingestion and profiling SQL, confirmed findings and next planned steps.
+- [Classroom speaking script](CLASSROOM_SPEAKING_SCRIPT.md): read-aloud walkthrough with on-screen cues and anticipated questions.
+
+Last confirmed: `workspace.default.rice_bronze` contains 437 rows; 12 columns; five duplicated IDs; at least one missing province; `production_mt` typed as `string`. The invalid production-value count, Silver and Gold remain unverified.
