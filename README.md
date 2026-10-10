@@ -14,6 +14,7 @@ The teaching narrative covers how to analyze Big Data from question definition a
 
 - [KANBAN.md](KANBAN.md): current status and remaining QA.
 - [GitHub Issues](https://github.com/gilmour59/GBA_cloud/issues): task tracker.
+- [Databricks Rice CSV upload guide](simulation/DATABRICKS_UPLOAD_GUIDE.md): step-by-step synthetic dataset upload, SQL validation, and troubleshooting.
 - [Simulation plan](simulation/README.md) and [starter PySpark script](simulation/agri_demo.py). Databricks Free Edition testing is still pending.
 
 ## Research papers
