@@ -16,9 +16,13 @@
 - [x] HTML presentation published to GitHub as the primary source, with presenter window, timer, controls, and custom visuals.
 - [x] Add the Big Data analysis framework and production-vs-yield interpretation example.
 
+## Databricks confirmed progress
+- [x] S-01 Basic Free Edition notebook SQL, upload, table-read test: **437 synthetic CSV rows imported into `workspace.default.rice_bronze`**.
+- [x] S-02 Initial profiling: 12-column schema, five duplicate IDs, a missing province, year/province groups, `production_mt` stored as string.
+- [ ] S-02b Production `TRY_CAST` inspection and detailed quality checks.
+- [x] [Executed lab log](simulation/EXECUTED_LAB_LOG.md) and [classroom speaking script](simulation/CLASSROOM_SPEAKING_SCRIPT.md) recorded.
+
 ## To do — Databricks Free Edition
-- [ ] S-01 Verify runtime/permissions in the actual workspace.
-- [ ] S-02 Generate and test synthetic agricultural data (no real farmer records).
 - [ ] S-03 Run Bronze/Silver validation, deduplication, quarantine, and quality metrics.
 - [ ] S-04 Run Gold analytics and charts.
 - [ ] S-05 Verify Delta Lake history/versioning and rerun safety.
