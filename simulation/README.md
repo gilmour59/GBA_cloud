@@ -1,5 +1,7 @@
 # Databricks Simulation
 
+For the separate browser-based classroom competition, see the [contest Kanban](CONTEST_KANBAN.md) and [roadmap](CONTEST_ROADMAP.md). The Rice instructor demo, Cacao contest, and results reveal have their own 5 + 15 + 5 minute plan.
+
 ## Agricultural Big Data Analytics
 A fictional Western Visayas crop-production dataset will demonstrate ingestion → Bronze raw → Silver clean → Gold aggregated analytics → visualization, with data quality counts and Delta version history when supported.
 
