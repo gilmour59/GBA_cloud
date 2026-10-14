@@ -13,6 +13,7 @@ The teaching narrative covers how to analyze Big Data from question definition a
 ## Project management and simulation
 
 - [KANBAN.md](KANBAN.md): current status and remaining QA.
+- [Classroom contest Kanban](simulation/CONTEST_KANBAN.md) and [roadmap](simulation/CONTEST_ROADMAP.md): standalone browser-based Rice demo and Cacao competition plan (5 + 15 + 5 minutes).
 - [GitHub Issues](https://github.com/gilmour59/GBA_cloud/issues): task tracker.
 - [Databricks Rice CSV upload guide](simulation/DATABRICKS_UPLOAD_GUIDE.md): step-by-step synthetic dataset upload, SQL validation, and troubleshooting.
 - [Simulation plan](simulation/README.md) and [starter PySpark script](simulation/agri_demo.py). Databricks Free Edition testing is still pending.
