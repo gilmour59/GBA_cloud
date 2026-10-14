@@ -14,7 +14,7 @@ FROM silver
 GROUP BY location
 ORDER BY location`;
 
-function silverQuery(crop, places, corrected) {
+function silverQuery(crop, places) {
   return `WITH ranked AS (
   SELECT row_uid, record_id, TRIM(location) AS location,
     UPPER(TRIM(commodity)) AS commodity,
@@ -29,19 +29,21 @@ FROM ranked
 WHERE location IN (${places.map(p => `'${p}'`).join(', ')})
   AND commodity = '${crop}'
   AND CAST(harvested_area_ha AS REAL) > 0
-  AND CAST(production_mt AS REAL) >= 0${corrected ? `
+  AND CAST(production_mt AS REAL) >= 0`;
+}
+
+const riceCorrection = `${silverQuery('RICE', ['Pinefield', 'Riverbend', 'Hillcrest', 'Lakeside'])}
   AND TRIM(production_mt) <> ''
   AND TRIM(production_mt) NOT GLOB '*[^0-9.]*'
-  AND rn = 1` : ''}`;
-}
+  AND rn = 1`;
 
 const starters = {
   rice: {
-    silver: silverQuery('RICE', ['Pinefield', 'Riverbend', 'Hillcrest', 'Lakeside'], false),
+    silver: silverQuery('RICE', ['Pinefield', 'Riverbend', 'Hillcrest', 'Lakeside']),
     gold: goldCorrect
   },
   cacao: {
-    silver: silverQuery('CACAO', ['Cedarvale', 'Brookhaven', 'Sunridge', 'Mossfield'], false),
+    silver: silverQuery('CACAO', ['Cedarvale', 'Brookhaven', 'Sunridge', 'Mossfield']),
     gold: goldCorrect.replace('SUM(production_mt) / SUM(harvested_area_ha)', 'AVG(production_mt / harvested_area_ha)')
   }
 };
@@ -223,7 +225,7 @@ async function init() {
   $('runButton').addEventListener('click', () => action(() => runLocal()));
   $('verifyButton').addEventListener('click', () => action(() => verify()));
   $('resetButton').addEventListener('click', () => action(() => mode(state.mode)));
-  $('demoFixButton').addEventListener('click', () => { $('silverSql').value = silverQuery('RICE', ['Pinefield', 'Riverbend', 'Hillcrest', 'Lakeside'], true); notice('Rice correction loaded. Run Query, then Verify Accuracy.'); });
+  $('demoFixButton').addEventListener('click', () => { $('silverSql').value = riceCorrection; notice('Rice correction loaded. Run Query, then Verify Accuracy.'); });
   $('startButton').addEventListener('click', () => action(async () => { await post('/api/instructor/start', { pin: $('pin').value }); await refreshStatus(); notice('Contest started. Participants can now join.'); }));
   $('stopButton').addEventListener('click', () => action(async () => { const data = await post('/api/instructor/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); notice('Contest closed. Verified results are below.'); }));
   $('resultsButton').addEventListener('click', () => action(async () => showResults(await api('/api/results'))));
