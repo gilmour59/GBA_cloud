@@ -243,6 +243,7 @@ async function mode(mode) {
   state.mode = mode; state.rows = [];
   $('riceTab')?.classList.toggle('selected', mode === 'rice');
   $('cacaoTab')?.classList.toggle('selected', mode === 'cacao');
+  if ($('demoGuide')) $('demoGuide').hidden = mode !== 'rice';
   $('join').hidden = mode !== 'cacao' || Boolean(state.token);
   if ($('demoFixButton')) $('demoFixButton').hidden = mode !== 'rice';
   $('taskText').textContent = mode === 'rice' ? 'Presenter: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';

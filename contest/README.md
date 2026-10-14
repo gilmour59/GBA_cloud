@@ -16,6 +16,8 @@ Open `http://127.0.0.1:3000/presenter` for the **presenter view**. Share `http:/
 
 ## How to present
 
+Use the [five-minute Rice demo guide](DEMO_GUIDE.md) for a timed click sequence and short speaking cues. The same guide is built into the Presenter view and closes when you switch to Cacao.
+
 1. On the **presenter view**, open **Rice demo**. Click **Run Silver**, then **Run Gold**: the starter SQL executes and draws a plausible but incorrect dashboard. Click **Verify Accuracy** to show that execution is not correctness.
 2. Click **Load Rice correction**, then run Silver and Gold again before verifying. The server should report 100%. Show the changed production chart and quarantined count.
 3. In **Presenter controls**, start the 15-minute contest. You can switch to Cacao and join as a contestant too. Classmates open the **student URL**, enter a unique display name, and join **Cacao contest**. They can click **Pin Bronze** for a floating, draggable reference table while editing. Their Silver SQL runs independently of Gold; rerun Silver after changing it, then run Gold and verify. Each stage has a separate **Check Silver** or **Check Gold** action that reports whether it is correct and shows category points. A successful Run only means the SQL executed. The stage checks do not submit a contest entry; only **Verify Accuracy** records an official score, and 100% completes the challenge. Their SQL runs in an isolated browser SQLite database. They may ask AI for help but must type changes into the editor.
