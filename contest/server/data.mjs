@@ -36,6 +36,10 @@ export function fixture(mode, seed = 'sample') {
   rows[36].harvested_area_ha = '';
   rows[43].commodity = ` ${rule.crop.toLowerCase()} `;
   rows[50].location = ` ${rows[50].location} `;
+  if (mode === 'cacao') {
+    rows[67].year = 2024;
+    rows[82].record_id = '  ';
+  }
   rows.push({ ...rows[60], row_uid: rule.count + 1 });
   rows.push({ ...rows[75], row_uid: rule.count + 2 });
   return rows;
@@ -55,7 +59,7 @@ export function expected(mode, seed = 'sample') {
     const productionText = raw.production_mt.trim();
     const area = Number(areaText);
     const production = Number(productionText);
-    if (!location || commodity !== rule.crop || !decimal.test(areaText) || !decimal.test(productionText) || area <= 0 || production < 0 || seen.has(raw.record_id)) {
+    if (!location || commodity !== rule.crop || !decimal.test(areaText) || !decimal.test(productionText) || area <= 0 || production < 0 || seen.has(raw.record_id) || (mode === 'cacao' && (raw.year !== 2025 || !raw.record_id.trim()))) {
       quarantine.push(raw.row_uid);
       continue;
     }

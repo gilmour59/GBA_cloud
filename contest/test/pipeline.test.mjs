@@ -16,7 +16,8 @@ function silverSql(mode, corrected) {
     WHERE location IN (${places.map(p => `'${p}'`).join(',')})
       AND commodity = '${mode.toUpperCase()}'
       AND CAST(harvested_area_ha AS REAL) > 0 AND CAST(production_mt AS REAL) >= 0
-      ${corrected ? "AND TRIM(production_mt) <> '' AND TRIM(production_mt) NOT GLOB '*[^0-9.]*' AND rn = 1" : ''}`;
+      ${corrected ? "AND TRIM(production_mt) <> '' AND TRIM(production_mt) NOT GLOB '*[^0-9.]*' AND rn = 1" : ''}
+      ${corrected && mode === 'cacao' ? "AND year = 2025 AND TRIM(record_id) <> ''" : ''}`;
 }
 
 const goldSql = `SELECT location, ROUND(SUM(production_mt), 2) AS total_production_mt,
@@ -28,7 +29,15 @@ test('fixtures are separate, reproducible, and have known quality errors', () =>
   assert.deepEqual(fixture('rice'), fixture('rice'));
   assert.equal(fixture('rice').length, 98);
   assert.equal(fixture('cacao').length, 146);
-  assert.equal(expected('cacao').quarantine.length, 7);
+  assert.equal(expected('cacao').quarantine.length, 9);
+});
+
+test('Rice cleaning pattern alone does not solve Cacao', () => {
+  const places = ['Cedarvale', 'Brookhaven', 'Sunridge', 'Mossfield'];
+  const ricePatternOnCacao = silverSql('cacao', true)
+    .replace("AND year = 2025 AND TRIM(record_id) <> ''", '');
+  assert.ok(places.every(place => ricePatternOnCacao.includes(place)));
+  assert.ok(scoreResult('cacao', runPipeline('cacao', ricePatternOnCacao, goldSql)).score < 100);
 });
 
 test('corrected SQL produces 100% on both datasets', () => {

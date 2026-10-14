@@ -246,6 +246,7 @@ async function mode(mode) {
   $('join').hidden = mode !== 'cacao' || Boolean(state.token);
   if ($('demoFixButton')) $('demoFixButton').hidden = mode !== 'rice';
   $('taskText').textContent = mode === 'rice' ? 'Presenter: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';
+  $('silverCriteria').innerHTML = `<strong>Complete when:</strong> location is one of the listed places; crop matches after trimming and case correction; production_mt is numeric and at least 0; harvested_area_ha is numeric and greater than 0; keep the lowest row_uid per record_id; ${mode === 'cacao' ? 'year is 2025 and record_id is not blank; ' : ''}exclude every other row.`;
   $('silverSql').value = starters[mode].silver;
   $('goldSql').value = starters[mode].gold;
   clearSilver();
