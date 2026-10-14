@@ -1,0 +1,16 @@
+{
+  "name": "gba-classroom-contest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "sql.js": "1.14.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

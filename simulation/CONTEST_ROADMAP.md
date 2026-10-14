@@ -1,6 +1,6 @@
 # Classroom Data Engineering Contest — Roadmap
 
-This roadmap is for a **new Databricks-inspired browser simulation**, separate from the existing [Databricks Free Edition notebook](README.md) and [project Kanban](../KANBAN.md). Track status in the [contest Kanban](CONTEST_KANBAN.md). Nothing below claims the contest application already exists.
+This roadmap is for a **new Databricks-inspired browser simulation**, separate from the existing [Databricks Free Edition notebook](README.md) and [project Kanban](../KANBAN.md). Track status in the [contest Kanban](CONTEST_KANBAN.md). A working [contest app prototype](../contest/README.md) now covers the MVP path; classroom release gates remain open.
 
 ## Classroom experience
 
@@ -23,6 +23,8 @@ There is **no separate guided-practice phase**. Keep the Rice demo short enough 
 7. **Contest rule:** The first server-verified 100% score wins. If no one reaches 100%, highest server-verified score wins; use the published tie rule for equal scores. Only a verified in-window submission qualifies. AI use is allowed; SQL must be entered manually. Editor paste prevention is a classroom reminder and deterrent, not a reliable cheating detector.
 
 ## Build sequence and exit gates
+
+**Current status (2026-10-14):** Stages 1–3 have a local implementation and automated pipeline checks. Stage 4 has working server replay, clock, and winner selection, with concurrency/expiry rehearsal still pending. Stage 5 still needs a full 25-minute classroom rehearsal.
 
 | Stage | Work | Exit gate | Kanban cards |
 | --- | --- | --- | --- |
