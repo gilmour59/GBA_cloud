@@ -136,6 +136,9 @@ function clearGold() {
   state.lastRun = null;
   $('goldRunState').textContent = state.silverRun ? 'Not run' : 'Waiting for Silver';
   $('runGoldButton').disabled = !state.silverRun;
+  $('checkGoldButton').disabled = true;
+  $('goldCheck').textContent = 'Run Gold, then check its totals and yield.';
+  $('goldCheck').className = 'stage-check';
   $('verifyButton').disabled = true;
   $('goldTable').replaceChildren();
   drawChart([]);
@@ -145,6 +148,9 @@ function clearGold() {
 function clearSilver() {
   state.silverRun = null;
   $('silverRunState').textContent = 'Not run';
+  $('checkSilverButton').disabled = true;
+  $('silverCheck').textContent = 'Run Silver, then check if it meets the criteria.';
+  $('silverCheck').className = 'stage-check';
   $('silverCount').textContent = 'Run Silver to see the cleaned rows.';
   $('silverTable').replaceChildren();
   $('quarantineTable').replaceChildren();
@@ -171,6 +177,9 @@ function runSilver() {
     state.silverRun = { silver, sql: $('silverSql').value };
     clearGold();
     $('silverRunState').textContent = 'Ran successfully';
+    $('checkSilverButton').disabled = false;
+    $('silverCheck').textContent = 'SQL ran. Check Silver to learn whether the rows are correct.';
+    $('silverCheck').className = 'stage-check';
     const selectedIds = new Set(silver.map(row => Number(row.row_uid)));
     const quarantine = state.rows.filter(row => !selectedIds.has(row.row_uid));
     $('silverCount').textContent = `${silver.length} Silver rows · ${quarantine.length} rows quarantined or excluded`;
@@ -194,12 +203,28 @@ function runGold() {
     if (gold.length && goldFields.some(name => !(name in gold[0]))) throw new Error(`Gold must return: ${goldFields.join(', ')}.`);
     state.lastRun = { silverSql: state.silverRun.sql, goldSql: $('goldSql').value };
     $('goldRunState').textContent = 'Ran successfully';
+    $('checkGoldButton').disabled = false;
+    $('goldCheck').textContent = 'SQL ran. Check Gold to learn whether its totals and yield are correct.';
+    $('goldCheck').className = 'stage-check';
     $('verifyButton').disabled = false;
     table($('goldTable'), gold, 20);
     drawChart(gold);
     $('accuracy').hidden = true;
     notice('Gold ran successfully. The dashboard shows your actual result. Verify Accuracy to check both stages.');
   } finally { db.close(); }
+}
+
+async function checkStage(stage) {
+  if (stage === 'silver' && (!state.silverRun || state.silverRun.sql !== $('silverSql').value)) throw new Error('Run the current Silver SQL first.');
+  if (stage === 'gold' && (!state.lastRun || state.lastRun.goldSql !== $('goldSql').value)) throw new Error('Run the current Gold SQL first.');
+  const result = await post('/api/check-stage', { mode: state.mode, token: state.token, stage, silverSql: $('silverSql').value, goldSql: $('goldSql').value });
+  const label = stage === 'silver' ? 'Silver' : 'Gold';
+  const detail = result.checks.map(check => `${check.label} ${check.points}/${check.max}`).join(' · ');
+  const message = result.correct ? `${label} is correct. ${detail}` : `${label} needs changes. ${detail}`;
+  $(`${stage}Check`).textContent = message;
+  $(`${stage}Check`).className = `stage-check ${result.correct ? 'correct' : 'needs-work'}`;
+  $(`${stage}RunState`).textContent = result.correct ? 'Correct' : 'Needs work';
+  notice(result.correct ? `${label} meets its completion criteria.` : `${label} runs, but is not correct yet. Review the criteria and category points.`);
 }
 
 async function verify() {
@@ -277,6 +302,8 @@ async function init() {
   }));
   $('runSilverButton').addEventListener('click', () => action(() => runSilver()));
   $('runGoldButton').addEventListener('click', () => action(() => runGold()));
+  $('checkSilverButton').addEventListener('click', () => action(() => checkStage('silver')));
+  $('checkGoldButton').addEventListener('click', () => action(() => checkStage('gold')));
   $('verifyButton').addEventListener('click', () => action(() => verify()));
   $('resetButton').addEventListener('click', () => action(() => mode(state.mode)));
   $('demoFixButton')?.addEventListener('click', () => { $('silverSql').value = riceCorrection; clearSilver(); notice('Rice correction loaded. Run Silver, then Gold, then Verify Accuracy.'); });

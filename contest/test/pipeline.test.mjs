@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture, expected } from '../server/data.mjs';
-import { runPipeline, validateSql } from '../server/engine.mjs';
+import { runPipeline, runGold, validateSql } from '../server/engine.mjs';
 import { scoreResult } from '../server/score.mjs';
 
 function silverSql(mode, corrected) {
@@ -44,6 +44,15 @@ test('valid but wrong SQL runs and scores below 100%', () => {
   const result = runPipeline('cacao', silverSql('cacao', false), goldSql.replace('SUM(production_mt) / SUM(harvested_area_ha)', 'AVG(production_mt / harvested_area_ha)'));
   assert.ok(result.gold.length > 0);
   assert.ok(scoreResult('cacao', result).score < 100);
+});
+
+test('Cacao Gold starter is wrong even with correct Silver for varied seeds', () => {
+  const wrongGold = goldSql.replace('SUM(production_mt) / SUM(harvested_area_ha)', 'AVG(production_mt / harvested_area_ha)');
+  for (const seed of ['sample', ...Array.from({ length: 20 }, (_, index) => `seed-${index}`)]) {
+    const silver = expected('cacao', seed).silver;
+    const gold = runGold(silver, wrongGold);
+    assert.ok(scoreResult('cacao', { silver, gold }, seed).categories['Gold totals'] < 35, seed);
+  }
 });
 
 test('one missing Silver row cannot round up to a perfect score', () => {

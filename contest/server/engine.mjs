@@ -26,7 +26,7 @@ function selectRows(db, sql) {
   } finally { prepared.free(); }
 }
 
-export function runPipeline(mode, silverSql, goldSql, seed = 'sample') {
+export function runSilver(mode, silverSql, seed = 'sample') {
   const db = new SQL.Database();
   try {
     db.run('CREATE TABLE bronze (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha TEXT, production_mt TEXT, year INTEGER)');
@@ -36,13 +36,25 @@ export function runPipeline(mode, silverSql, goldSql, seed = 'sample') {
     const silver = selectRows(db, silverSql);
     const required = COLUMNS;
     if (silver.length && required.some(name => !(name in silver[0]))) throw new Error(`Silver must return: ${required.join(', ')}.`);
+    return silver;
+  } finally { db.close(); }
+}
+
+export function runGold(silver, goldSql) {
+  const db = new SQL.Database();
+  try {
     db.run('CREATE TABLE silver (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha REAL, production_mt REAL, year INTEGER)');
     const addSilver = db.prepare('INSERT INTO silver VALUES (?, ?, ?, ?, ?, ?, ?)');
-    for (const row of silver) addSilver.run(required.map(name => row[name]));
+    for (const row of silver) addSilver.run(COLUMNS.map(name => row[name]));
     addSilver.free();
     const gold = selectRows(db, goldSql);
     const goldColumns = ['location', 'total_production_mt', 'total_area_ha', 'yield_mt_ha'];
     if (gold.length && goldColumns.some(name => !(name in gold[0]))) throw new Error(`Gold must return: ${goldColumns.join(', ')}.`);
-    return { silver, gold };
+    return gold;
   } finally { db.close(); }
+}
+
+export function runPipeline(mode, silverSql, goldSql, seed = 'sample') {
+  const silver = runSilver(mode, silverSql, seed);
+  return { silver, gold: runGold(silver, goldSql) };
 }

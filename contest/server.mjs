@@ -124,6 +124,15 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, 200, result);
     }
+    if (req.method === 'POST' && path === '/api/check-stage') {
+      const input = await body(req);
+      const mode = input.mode === 'rice' ? 'rice' : 'cacao';
+      const stage = input.stage;
+      if (stage !== 'silver' && stage !== 'gold') return json(res, 400, { error: 'Choose Silver or Gold to check.' });
+      if (mode === 'cacao' && (!status().active || !sessions.has(input.token))) return json(res, 403, { error: 'Join an active contest before checking accuracy.' });
+      const result = await verifyInWorker({ mode, stage, silverSql: input.silverSql, goldSql: input.goldSql, seed });
+      return json(res, 200, result);
+    }
     if (req.method === 'POST' && path === '/api/instructor/start') {
       const input = await body(req);
       if (!instructorAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect instructor PIN.' });

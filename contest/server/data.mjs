@@ -15,7 +15,10 @@ export function fixture(mode, seed = 'sample') {
   const rows = [];
   for (let index = 1; index <= rule.count; index++) {
     const area = 2 + ((index + variant) % 7) * 0.5;
-    const production = area * (1.4 + ((index + variant) % 5) * 0.2);
+    const yieldPerHa = mode === 'cacao'
+      ? 1.2 + ((index + variant) % 7) * 0.18
+      : 1.4 + ((index + variant) % 5) * 0.2;
+    const production = area * yieldPerHa;
     rows.push({
       row_uid: index,
       record_id: `${mode === 'rice' ? 'R' : 'C'}-${String(index).padStart(3, '0')}`,
