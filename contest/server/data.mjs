@@ -39,6 +39,10 @@ export function fixture(mode, seed = 'sample') {
   if (mode === 'cacao') {
     rows[67].year = 2024;
     rows[82].record_id = '  ';
+    rows[89].location = 'North Orchard';
+    rows[97].commodity = 'COCOA';
+    rows[105].harvested_area_ha = 'n/a';
+    rows[112].production_mt = '';
   }
   rows.push({ ...rows[60], row_uid: rule.count + 1 });
   rows.push({ ...rows[75], row_uid: rule.count + 2 });
@@ -80,6 +84,14 @@ export function expected(mode, seed = 'sample') {
     yield_mt_ha: round(row.total_production_mt / row.total_area_ha)
   })).sort((a, b) => a.location.localeCompare(b.location));
   return { silver, quarantine, gold };
+}
+
+export function qualitySummary(mode, seed = 'sample') {
+  const rows = fixture(mode, seed);
+  const required = ['record_id', 'location', 'commodity', 'harvested_area_ha', 'production_mt'];
+  const missingRows = rows.filter(row => required.some(field => !String(row[field] ?? '').trim())).length;
+  const missingCells = rows.reduce((total, row) => total + required.filter(field => !String(row[field] ?? '').trim()).length, 0);
+  return { missingRows, missingCells, targetExcluded: expected(mode, seed).quarantine.length };
 }
 
 function round(value) { return Math.round((value + Number.EPSILON) * 100) / 100; }

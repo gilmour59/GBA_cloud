@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fixture, expected } from '../server/data.mjs';
+import { fixture, expected, qualitySummary } from '../server/data.mjs';
 import { runPipeline, runGold, validateSql } from '../server/engine.mjs';
 import { scoreResult } from '../server/score.mjs';
 
@@ -16,7 +16,7 @@ function silverSql(mode, corrected) {
     WHERE location IN (${places.map(p => `'${p}'`).join(',')})
       AND commodity = '${mode.toUpperCase()}'
       AND CAST(harvested_area_ha AS REAL) > 0 AND CAST(production_mt AS REAL) >= 0
-      ${corrected ? "AND TRIM(production_mt) <> '' AND TRIM(production_mt) NOT GLOB '*[^0-9.]*' AND rn = 1" : ''}
+      ${corrected ? "AND TRIM(production_mt) <> '' AND TRIM(production_mt) NOT GLOB '*[^0-9.]*' AND TRIM(harvested_area_ha) <> '' AND TRIM(harvested_area_ha) NOT GLOB '*[^0-9.]*' AND rn = 1" : ''}
       ${corrected && mode === 'cacao' ? "AND year = 2025 AND TRIM(record_id) <> ''" : ''}`;
 }
 
@@ -29,7 +29,8 @@ test('fixtures are separate, reproducible, and have known quality errors', () =>
   assert.deepEqual(fixture('rice'), fixture('rice'));
   assert.equal(fixture('rice').length, 98);
   assert.equal(fixture('cacao').length, 146);
-  assert.equal(expected('cacao').quarantine.length, 9);
+  assert.equal(expected('cacao').quarantine.length, 13);
+  assert.deepEqual(qualitySummary('cacao'), { missingRows: 4, missingCells: 4, targetExcluded: 13 });
 });
 
 test('Rice cleaning pattern alone does not solve Cacao', () => {

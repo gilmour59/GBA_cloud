@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const isPresenter = document.body.dataset.role === 'presenter';
-const state = { mode: isPresenter ? 'rice' : 'cacao', rows: [], cacaoRows: [], token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null };
+const state = { mode: isPresenter ? 'rice' : 'cacao', rows: [], cacaoRows: [], quality: null, cacaoQuality: null, token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null, referenceLoaded: false };
 try {
   const saved = JSON.parse(sessionStorage.getItem('gba-contest-session') || 'null');
   if (saved?.token && saved?.start) { state.token = saved.token; state.sessionStart = saved.start; }
@@ -65,7 +65,7 @@ function post(path, value) {
   return api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) });
 }
 
-function table(tableElement, rows, limit = 10) {
+function table(tableElement, rows, limit = Infinity) {
   tableElement.replaceChildren();
   if (!rows.length) return;
   const names = Object.keys(rows[0]);
@@ -74,8 +74,27 @@ function table(tableElement, rows, limit = 10) {
   const body = tableElement.createTBody();
   for (const row of rows.slice(0, limit)) {
     const tr = body.insertRow();
-    for (const name of names) tr.insertCell().textContent = row[name] == null ? 'NULL' : String(row[name]);
+    for (const name of names) {
+      const cell = tr.insertCell();
+      cell.textContent = row[name] == null ? 'NULL' : String(row[name]);
+      if (row[name] == null || String(row[name]).trim() === '') cell.classList.add('missing-cell');
+    }
   }
+}
+
+function updateQuality(actualExcluded = null) {
+  const quality = state.quality;
+  $('qualitySummary').hidden = !quality;
+  if (!quality) return;
+  $('missingRows').textContent = quality.missingRows;
+  $('missingCells').textContent = quality.missingCells;
+  $('targetExcluded').textContent = quality.targetExcluded;
+  const difference = actualExcluded == null ? quality.targetExcluded : quality.targetExcluded - actualExcluded;
+  $('exclusionProgress').textContent = actualExcluded == null
+    ? `${quality.targetExcluded} rows must be excluded from Silver.`
+    : difference > 0 ? `${actualExcluded} excluded so far · at least ${difference} more to exclude.`
+      : difference < 0 ? `${actualExcluded} excluded · ${-difference} more than the target. Check for valid rows removed.`
+        : `${actualExcluded} excluded · target count reached. Use Check Silver to confirm the right rows.`;
 }
 
 function updateBronzeView() {
@@ -83,8 +102,9 @@ function updateBronzeView() {
   $('rowCount').textContent = count ? `${count} raw rows` : 'Waiting to join';
   $('bronzePanelCount').textContent = `${count} raw rows · drag to move`;
   $('pinBronzeButton').disabled = !count;
-  table($('bronzeTable'), state.rows, 12);
+  table($('bronzeTable'), state.rows);
   table($('bronzePinnedTable'), state.rows, count);
+  updateQuality();
   if (!count) toggleBronze(false);
 }
 
@@ -94,11 +114,10 @@ function toggleBronze(open) {
   $('pinBronzeButton').setAttribute('aria-pressed', String(open));
 }
 
-function drawChart(gold) {
-  const chart = $('chart');
+function renderChart(gold, chart, note) {
   chart.replaceChildren();
   chart.classList.toggle('empty', !gold.length);
-  if (!gold.length) { chart.textContent = 'No Gold rows to chart.'; $('yieldNote').textContent = ''; return; }
+  if (!gold.length) { chart.textContent = 'No Gold rows to chart.'; note.textContent = ''; return; }
   const sorted = [...gold].sort((a, b) => Number(b.total_production_mt) - Number(a.total_production_mt));
   const max = Math.max(1, ...sorted.map(row => Number(row.total_production_mt) || 0));
   for (const item of sorted) {
@@ -111,7 +130,14 @@ function drawChart(gold) {
     const value = document.createElement('span'); value.className = 'bar-value'; value.textContent = Number(item.total_production_mt).toFixed(1);
     row.append(label, track, value); chart.append(row);
   }
-  $('yieldNote').textContent = `Top place: ${sorted[0].location} · ${Number(sorted[0].yield_mt_ha).toFixed(2)} metric tons per hectare`;
+  note.textContent = `Top place: ${sorted[0].location} · ${Number(sorted[0].yield_mt_ha).toFixed(2)} metric tons per hectare`;
+}
+
+function drawChart(gold) { renderChart(gold, $('chart'), $('yieldNote')); }
+
+function drawReference(gold) {
+  $('referenceCard').hidden = false;
+  renderChart(gold, $('referenceChart'), $('referenceYieldNote'));
 }
 
 function safeSelect(sql) {
@@ -152,6 +178,7 @@ function clearSilver() {
   $('silverCheck').textContent = 'Run Silver, then check if it meets the criteria.';
   $('silverCheck').className = 'stage-check';
   $('silverCount').textContent = 'Run Silver to see the cleaned rows.';
+  updateQuality();
   $('silverTable').replaceChildren();
   $('quarantineTable').replaceChildren();
   clearGold();
@@ -183,8 +210,9 @@ function runSilver() {
     const selectedIds = new Set(silver.map(row => Number(row.row_uid)));
     const quarantine = state.rows.filter(row => !selectedIds.has(row.row_uid));
     $('silverCount').textContent = `${silver.length} Silver rows · ${quarantine.length} rows quarantined or excluded`;
-    table($('silverTable'), silver, 8);
-    table($('quarantineTable'), quarantine, 8);
+    updateQuality(quarantine.length);
+    table($('silverTable'), silver);
+    table($('quarantineTable'), quarantine);
     notice('Silver ran successfully. Review the cleaned and quarantined rows, then run Gold.');
   } finally { db.close(); }
 }
@@ -240,29 +268,29 @@ async function verify() {
 
 async function mode(mode) {
   if (!isPresenter && mode !== 'cacao') throw new Error('The Rice demonstration is on the presenter page.');
-  state.mode = mode; state.rows = [];
+  state.mode = mode; state.rows = []; state.quality = null; state.referenceLoaded = false; $('referenceCard').hidden = true;
   $('riceTab')?.classList.toggle('selected', mode === 'rice');
   $('cacaoTab')?.classList.toggle('selected', mode === 'cacao');
   $('join').hidden = mode !== 'cacao' || Boolean(state.token);
   if ($('demoFixButton')) $('demoFixButton').hidden = mode !== 'rice';
-  $('taskText').textContent = mode === 'rice' ? 'Presenter: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';
+  $('taskText').textContent = mode === 'rice' ? 'Presenter: run Silver, then Gold to show a believable wrong chart. Compare it with the completed reference, verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify. The completed reference dashboard appears after the reveal.';
   $('silverCriteria').innerHTML = `<strong>Complete when:</strong> location is one of the listed places; crop matches after trimming and case correction; production_mt is numeric and at least 0; harvested_area_ha is numeric and greater than 0; keep the lowest row_uid per record_id; ${mode === 'cacao' ? 'year is 2025 and record_id is not blank; ' : ''}exclude every other row.`;
   $('silverSql').value = starters[mode].silver;
   $('goldSql').value = starters[mode].gold;
   clearSilver();
   if (mode === 'rice') {
-    const data = await api('/api/demo'); state.rows = data.rows;
+    const data = await api('/api/demo'); state.rows = data.rows; state.quality = data.quality; drawReference(data.referenceGold);
     notice('Rice demo loaded. Run Silver, then Gold to show how valid SQL can produce the wrong answer.');
   } else if (state.token) {
     try {
       if (!state.cacaoRows.length) {
         const data = await api(`/api/session?token=${encodeURIComponent(state.token)}`);
-        state.cacaoRows = data.rows; $('name').value = data.name;
+        state.cacaoRows = data.rows; state.cacaoQuality = data.quality; $('name').value = data.name;
       }
-      state.rows = state.cacaoRows;
+      state.rows = state.cacaoRows; state.quality = state.cacaoQuality;
       $('join').hidden = true; notice('Cacao data loaded. The 15-minute timer is controlled by the server.');
     } catch {
-      state.token = null; state.cacaoRows = []; sessionStorage.removeItem('gba-contest-session');
+      state.token = null; state.cacaoRows = []; state.cacaoQuality = null; sessionStorage.removeItem('gba-contest-session');
       $('join').hidden = false; notice('Your session expired. Join the current contest again.');
     }
   } else notice(state.contest?.active ? 'The Cacao contest is live. Join with a display name.' : 'The Cacao challenge opens when the presenter starts the contest. Join with a display name.');
@@ -271,8 +299,11 @@ async function mode(mode) {
 
 async function refreshStatus() {
   const result = await api('/api/status'); state.contest = result;
+  if (state.mode === 'cacao' && result.closed && !state.referenceLoaded) {
+    const reference = await api('/api/reference'); drawReference(reference.gold); state.referenceLoaded = true;
+  }
   if (state.token && state.sessionStart !== result.startsAt) {
-    state.token = null; state.cacaoRows = []; sessionStorage.removeItem('gba-contest-session');
+    state.token = null; state.cacaoRows = []; state.cacaoQuality = null; sessionStorage.removeItem('gba-contest-session');
     if (state.mode === 'cacao') { state.rows = []; $('join').hidden = false; updateBronzeView(); clearSilver(); }
   }
   $('clock').textContent = result.active ? `${String(Math.floor(result.secondsLeft / 60)).padStart(2, '0')}:${String(result.secondsLeft % 60).padStart(2, '0')} left` : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
@@ -296,7 +327,7 @@ async function init() {
   $('joinButton').addEventListener('click', () => action(async () => {
     if (!state.contest?.active) throw new Error('Wait for the presenter to start the contest.');
     const data = await post('/api/session', { name: $('name').value });
-    state.token = data.token; state.rows = data.rows; state.cacaoRows = data.rows; state.sessionStart = data.status.startsAt; $('join').hidden = true;
+    state.token = data.token; state.rows = data.rows; state.cacaoRows = data.rows; state.quality = data.quality; state.cacaoQuality = data.quality; state.sessionStart = data.status.startsAt; $('join').hidden = true;
     sessionStorage.setItem('gba-contest-session', JSON.stringify({ token: data.token, start: data.status.startsAt }));
     updateBronzeView(); clearSilver();
     notice('You joined the Cacao contest. Inspect Bronze, then run Silver and Gold separately.');

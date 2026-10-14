@@ -29,7 +29,7 @@ Use the private Google Docs presenter guide for the timed Rice script, the compl
 
 Bronze rows include unique `row_uid`, business `record_id`, location, commodity, harvested area, production, and year. Valid Silver rows have a known nonblank place, the correct crop after trimming/case normalization, numeric production at least zero, numeric harvested area greater than zero, and one row per `record_id` (keep the lowest `row_uid`). All excluded rows are the quarantine set. Gold groups by place, sums production and harvested area, and calculates area-weighted yield as `SUM(production_mt) / SUM(harvested_area_ha)`, rounded to two decimals.
 
-Cacao adds two validation rules that Rice does not exercise: the year must be 2025 and the business `record_id` must not be blank. The contest page states these rules. Applying only the Rice cleaning changes to Cacao will therefore miss records, even after changing the crop and place names. The Gold target calculation is deliberately shared so the demo teaches that concept.
+Cacao adds two validation rules that Rice does not exercise: the year must be 2025 and the business `record_id` must not be blank. It also has extra wrong crop/place values, an invalid area, and a missing production value. The contest page states the rules. Applying only the Rice cleaning changes to Cacao will therefore miss records, even after changing the crop and place names. The Gold target calculation is deliberately shared so the demo teaches that concept.
 
 Verification assigns 40 points to Silver membership and values, 15 to quarantine, 35 to Gold totals/yield, and 10 to the top-place dashboard facts. Partial category scores are rounded down, so a near match cannot become 100%. The browser shows category feedback but does not receive expected Cacao results. The server generates a private fixture seed unless `CONTEST_SEED` is set for a reproducible rehearsal; when `STATE_FILE` is configured, the seed survives restarts.
 
@@ -37,7 +37,8 @@ Verification assigns 40 points to Silver membership and values, 15 to quarantine
 
 ## Architecture and limits
 
-- Browser: local `sql.js` WebAssembly engine executes the edited, read-only Silver and Gold `SELECT` queries. The chart uses those actual Gold rows.
+- Browser: local `sql.js` WebAssembly engine executes the edited, read-only Silver and Gold `SELECT` queries. The chart uses those actual Gold rows. Bronze and query outputs show all rows in scrollable tables. Missing cells are highlighted, and a summary shows the count of rows with missing fields, the required exclusion count, and the current exclusion progress.
+- The completed Rice dashboard is visible beside the presenter's current dashboard during the demo. The completed Cacao dashboard appears only after the contest closes, so students can compare their results at the reveal.
 - The Bronze reference panel stays visible while scrolling within the app. Browsers do not guarantee that a web page can stay above other desktop windows.
 - Server: the same SQL engine replays submitted SQL on canonical data in a time-limited worker, compares the result with independently computed expected rows, and records verified scores and receipt times. The browser's score and clock are never accepted.
 - Locally, sessions and scores stay in server memory unless `STATE_FILE` is set. On Railway, `STATE_FILE` must point to a mounted volume; the server saves its fixture seed, sessions, timer, and verified scores after every change. A browser refresh restores that tab's session while the same contest remains available.

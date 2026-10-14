@@ -4,7 +4,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
-import { fixture } from './server/data.mjs';
+import { fixture, expected, qualitySummary } from './server/data.mjs';
 import { loadState, saveState } from './server/state.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -106,12 +106,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && path === '/api/status') return json(res, 200, status());
-    if (req.method === 'GET' && path === '/api/demo') return json(res, 200, { rows: fixture('rice', seed) });
+    if (req.method === 'GET' && path === '/api/demo') return json(res, 200, { rows: fixture('rice', seed), quality: qualitySummary('rice', seed), referenceGold: expected('rice', seed).gold });
+    if (req.method === 'GET' && path === '/api/reference') {
+      if (!status().closed) return json(res, 403, { error: 'The Cacao reference dashboard opens after the contest ends.' });
+      return json(res, 200, { gold: expected('cacao', seed).gold });
+    }
     if (req.method === 'GET' && path === '/api/session') {
       const token = url.searchParams.get('token');
       const session = sessions.get(token);
       if (!session) return json(res, 404, { error: 'Session expired. Join again if the contest is active.' });
-      return json(res, 200, { token, name: session.name, rows: fixture('cacao', seed), status: status() });
+      return json(res, 200, { token, name: session.name, rows: fixture('cacao', seed), quality: qualitySummary('cacao', seed), status: status() });
     }
     if (req.method === 'POST' && path === '/api/session') {
       const input = await body(req);
@@ -122,7 +126,7 @@ const server = http.createServer(async (req, res) => {
       const token = randomUUID();
       sessions.set(token, { name, joinedAt: Date.now() });
       persist();
-      return json(res, 200, { token, rows: fixture('cacao', seed), status: status() });
+      return json(res, 200, { token, rows: fixture('cacao', seed), quality: qualitySummary('cacao', seed), status: status() });
     }
     if (req.method === 'POST' && path === '/api/verify') {
       const input = await body(req);
