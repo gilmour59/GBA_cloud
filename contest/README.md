@@ -16,7 +16,7 @@ Open `http://127.0.0.1:3000/presenter` for the **presenter view**. Share `http:/
 
 ## How to present
 
-Use the separate [five-minute Rice demo script](DEMO_SCRIPT.md) for timed speaking notes and click cues. The script does not appear on the Presenter screen.
+Use the private Google Docs presenter guide for the timed Rice script, the complete Rice and Cacao answers, and the demo-to-contest handoff. The answer key is intentionally kept out of this public repository and does not appear on the Presenter screen.
 
 1. On the **presenter view**, open **Rice demo**. Click **Run Silver**, then **Run Gold**: the starter SQL executes and draws a plausible but incorrect dashboard. Click **Verify Accuracy** to show that execution is not correctness.
 2. Click **Load Rice correction**, then run Silver and Gold again before verifying. The server should report 100%. Show the changed production chart and quarantined count.
