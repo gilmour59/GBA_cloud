@@ -16,9 +16,9 @@ Open `http://127.0.0.1:3000/instructor` for the **instructor view**. Share `http
 
 ## How to present
 
-1. On the **instructor view**, open **Rice demo**. Click **Run Query**: the starter SQL executes and draws a plausible but incorrect dashboard. Click **Verify Accuracy** to show that execution is not correctness.
-2. Click **Load Rice correction**, then **Run Query** and **Verify Accuracy** again. The server should report 100%. Show the changed production chart and quarantined count.
-3. In **Instructor controls**, start the 15-minute contest. Classmates open the **student URL**, enter a unique display name, and join **Cacao contest**. Their SQL runs in an isolated browser SQLite database. They may ask AI for help but must type changes into the editor.
+1. On the **instructor view**, open **Rice demo**. Click **Run Silver**, then **Run Gold**: the starter SQL executes and draws a plausible but incorrect dashboard. Click **Verify Accuracy** to show that execution is not correctness.
+2. Click **Load Rice correction**, then run Silver and Gold again before verifying. The server should report 100%. Show the changed production chart and quarantined count.
+3. In **Instructor controls**, start the 15-minute contest. Classmates open the **student URL**, enter a unique display name, and join **Cacao contest**. They can click **Pin Bronze** for a floating, draggable reference table while editing. Their Silver SQL runs independently of Gold; rerun Silver after changing it, then run Gold and verify. Their SQL runs in an isolated browser SQLite database. They may ask AI for help but must type changes into the editor.
 4. At time expiry, or by using **End contest & reveal**, open **Show results**. The first server-verified 100% submission wins ₱50 GCash. If no entry reaches 100%, the highest verified score wins. Equal scores use the earlier server receipt time. The server, not the browser, determines the score and time.
 
 ## Scoring contract
@@ -30,6 +30,7 @@ Verification assigns 40 points to Silver membership and values, 15 to quarantine
 ## Architecture and limits
 
 - Browser: local `sql.js` WebAssembly engine executes the edited, read-only Silver and Gold `SELECT` queries. The chart uses those actual Gold rows.
+- The Bronze reference panel stays visible while scrolling within the app. Browsers do not guarantee that a web page can stay above other desktop windows.
 - Server: the same SQL engine replays submitted SQL on canonical data in a time-limited worker, compares the result with independently computed expected rows, and records verified scores and receipt times. The browser's score and clock are never accepted.
 - Sessions and scores are kept in server memory. Restarting the server resets the current contest, so keep it running throughout class. A browser refresh restores that tab's session while the server remains running.
 - The instructor view is a separate page. The PIN protects contest start/stop and is rate limited, including if someone discovers the instructor URL. Display names are classroom labels, not verified identities; the instructor should supervise name use. For an internet-facing event, add authentication, durable storage, TLS, and deployment-specific resource controls before using this prototype.

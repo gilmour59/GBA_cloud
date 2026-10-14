@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const isInstructor = document.body.dataset.role === 'instructor';
-const state = { mode: isInstructor ? 'rice' : 'cacao', rows: [], cacaoRows: [], token: null, sessionStart: null, sql: null, lastRun: null, contest: null };
+const state = { mode: isInstructor ? 'rice' : 'cacao', rows: [], cacaoRows: [], token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null };
 try {
   const saved = JSON.parse(sessionStorage.getItem('gba-contest-session') || 'null');
   if (saved?.token && saved?.start) { state.token = saved.token; state.sessionStart = saved.start; }
@@ -78,6 +78,22 @@ function table(tableElement, rows, limit = 10) {
   }
 }
 
+function updateBronzeView() {
+  const count = state.rows.length;
+  $('rowCount').textContent = count ? `${count} raw rows` : 'Waiting to join';
+  $('bronzePanelCount').textContent = `${count} raw rows · drag to move`;
+  $('pinBronzeButton').disabled = !count;
+  table($('bronzeTable'), state.rows, 12);
+  table($('bronzePinnedTable'), state.rows, count);
+  if (!count) toggleBronze(false);
+}
+
+function toggleBronze(open) {
+  $('bronzePanel').hidden = !open;
+  $('pinBronzeButton').textContent = open ? 'Unpin Bronze' : 'Pin Bronze ↗';
+  $('pinBronzeButton').setAttribute('aria-pressed', String(open));
+}
+
 function drawChart(gold) {
   const chart = $('chart');
   chart.replaceChildren();
@@ -116,40 +132,78 @@ function rowsFrom(db, sql) {
   } finally { stmt.free(); }
 }
 
-function runLocal() {
-  if (!state.rows.length) throw new Error('Join the contest to load Cacao data.');
+function clearGold() {
+  state.lastRun = null;
+  $('goldRunState').textContent = state.silverRun ? 'Not run' : 'Waiting for Silver';
+  $('runGoldButton').disabled = !state.silverRun;
+  $('verifyButton').disabled = true;
+  $('goldTable').replaceChildren();
+  drawChart([]);
+  $('accuracy').hidden = true;
+}
+
+function clearSilver() {
+  state.silverRun = null;
+  $('silverRunState').textContent = 'Not run';
+  $('silverCount').textContent = 'Run Silver to see the cleaned rows.';
+  $('silverTable').replaceChildren();
+  $('quarantineTable').replaceChildren();
+  clearGold();
+}
+
+function bronzeDb() {
   const db = new state.sql.Database();
+  db.run('CREATE TABLE bronze (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha TEXT, production_mt TEXT, year INTEGER)');
+  const insert = db.prepare('INSERT INTO bronze VALUES (?, ?, ?, ?, ?, ?, ?)');
   try {
-    db.run('CREATE TABLE bronze (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha TEXT, production_mt TEXT, year INTEGER)');
-    const insert = db.prepare('INSERT INTO bronze VALUES (?, ?, ?, ?, ?, ?, ?)');
     for (const row of state.rows) insert.run([row.row_uid, row.record_id, row.location, row.commodity, row.harvested_area_ha, row.production_mt, row.year]);
-    insert.free();
+  } finally { insert.free(); }
+  return db;
+}
+
+function runSilver() {
+  if (!state.rows.length) throw new Error('Join the contest to load Cacao data.');
+  const db = bronzeDb();
+  try {
     const silver = rowsFrom(db, $('silverSql').value);
     const required = ['row_uid', 'record_id', 'location', 'commodity', 'harvested_area_ha', 'production_mt', 'year'];
     if (silver.length && required.some(name => !(name in silver[0]))) throw new Error(`Silver must return: ${required.join(', ')}.`);
-    db.run('CREATE TABLE silver (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha REAL, production_mt REAL, year INTEGER)');
-    const add = db.prepare('INSERT INTO silver VALUES (?, ?, ?, ?, ?, ?, ?)');
-    for (const row of silver) add.run(required.map(name => row[name]));
-    add.free();
-    const gold = rowsFrom(db, $('goldSql').value);
-    const goldFields = ['location', 'total_production_mt', 'total_area_ha', 'yield_mt_ha'];
-    if (gold.length && goldFields.some(name => !(name in gold[0]))) throw new Error(`Gold must return: ${goldFields.join(', ')}.`);
-    state.lastRun = { silver, gold, silverSql: $('silverSql').value, goldSql: $('goldSql').value };
+    state.silverRun = { silver, sql: $('silverSql').value };
+    clearGold();
+    $('silverRunState').textContent = 'Ran successfully';
     const selectedIds = new Set(silver.map(row => Number(row.row_uid)));
     const quarantine = state.rows.filter(row => !selectedIds.has(row.row_uid));
     $('silverCount').textContent = `${silver.length} Silver rows · ${quarantine.length} rows quarantined or excluded`;
-    $('runState').textContent = 'Query ran';
     table($('silverTable'), silver, 8);
     table($('quarantineTable'), quarantine, 8);
+    notice('Silver ran successfully. Review the cleaned and quarantined rows, then run Gold.');
+  } finally { db.close(); }
+}
+
+function runGold() {
+  if (!state.silverRun || state.silverRun.sql !== $('silverSql').value) throw new Error('Run the current Silver SQL first.');
+  const db = new state.sql.Database();
+  try {
+    db.run('CREATE TABLE silver (row_uid INTEGER, record_id TEXT, location TEXT, commodity TEXT, harvested_area_ha REAL, production_mt REAL, year INTEGER)');
+    const add = db.prepare('INSERT INTO silver VALUES (?, ?, ?, ?, ?, ?, ?)');
+    try {
+      for (const row of state.silverRun.silver) add.run([row.row_uid, row.record_id, row.location, row.commodity, row.harvested_area_ha, row.production_mt, row.year]);
+    } finally { add.free(); }
+    const gold = rowsFrom(db, $('goldSql').value);
+    const goldFields = ['location', 'total_production_mt', 'total_area_ha', 'yield_mt_ha'];
+    if (gold.length && goldFields.some(name => !(name in gold[0]))) throw new Error(`Gold must return: ${goldFields.join(', ')}.`);
+    state.lastRun = { silverSql: state.silverRun.sql, goldSql: $('goldSql').value };
+    $('goldRunState').textContent = 'Ran successfully';
+    $('verifyButton').disabled = false;
     table($('goldTable'), gold, 20);
     drawChart(gold);
     $('accuracy').hidden = true;
-    notice('Query ran successfully. The dashboard now shows your actual Gold result. Use Verify Accuracy to check it.');
+    notice('Gold ran successfully. The dashboard shows your actual result. Verify Accuracy to check both stages.');
   } finally { db.close(); }
 }
 
 async function verify() {
-  if (!state.lastRun || state.lastRun.silverSql !== $('silverSql').value || state.lastRun.goldSql !== $('goldSql').value) throw new Error('Run your current SQL before verifying.');
+  if (!state.lastRun || state.lastRun.silverSql !== $('silverSql').value || state.lastRun.goldSql !== $('goldSql').value) throw new Error('Run the current Silver and Gold SQL before verifying.');
   const result = await post('/api/verify', { mode: state.mode, token: state.token, silverSql: $('silverSql').value, goldSql: $('goldSql').value });
   $('accuracy').hidden = false;
   $('scoreTitle').textContent = `${result.score}% accuracy${result.perfect ? ' · Perfect!' : ''}`;
@@ -161,20 +215,18 @@ async function verify() {
 
 async function mode(mode) {
   if (!isInstructor && mode !== 'cacao') throw new Error('The Rice demonstration is on the instructor page.');
-  state.mode = mode; state.lastRun = null; state.rows = [];
+  state.mode = mode; state.rows = [];
   $('riceTab')?.classList.toggle('selected', mode === 'rice');
   $('cacaoTab')?.classList.toggle('selected', mode === 'cacao');
   $('join').hidden = mode !== 'cacao' || Boolean(state.token);
   if ($('demoFixButton')) $('demoFixButton').hidden = mode !== 'rice';
-  $('taskText').textContent = mode === 'rice' ? 'Instructor: run the starter to show a believable wrong chart, verify it, then load the correction and verify again.' : 'Contest: repair the Silver filters and duplicate rule, then correct the Gold yield calculation.';
+  $('taskText').textContent = mode === 'rice' ? 'Instructor: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';
   $('silverSql').value = starters[mode].silver;
   $('goldSql').value = starters[mode].gold;
-  $('accuracy').hidden = true; $('runState').textContent = 'Not run';
-  $('silverCount').textContent = 'Run your SQL to see the cleaned rows.';
-  $('silverTable').replaceChildren(); $('quarantineTable').replaceChildren(); $('goldTable').replaceChildren(); drawChart([]);
+  clearSilver();
   if (mode === 'rice') {
     const data = await api('/api/demo'); state.rows = data.rows;
-    notice('Rice demo loaded. Run the starter SQL to show how valid SQL can produce the wrong answer.');
+    notice('Rice demo loaded. Run Silver, then Gold to show how valid SQL can produce the wrong answer.');
   } else if (state.token) {
     try {
       if (!state.cacaoRows.length) {
@@ -188,15 +240,14 @@ async function mode(mode) {
       $('join').hidden = false; notice('Your session expired. Join the current contest again.');
     }
   } else notice('The Cacao challenge opens when the instructor starts the contest. Join with a display name.');
-  $('rowCount').textContent = state.rows.length ? `${state.rows.length} raw rows` : 'Waiting to join';
-  table($('bronzeTable'), state.rows, 12);
+  updateBronzeView();
 }
 
 async function refreshStatus() {
   const result = await api('/api/status'); state.contest = result;
   if (state.token && state.sessionStart !== result.startsAt) {
     state.token = null; state.cacaoRows = []; sessionStorage.removeItem('gba-contest-session');
-    if (state.mode === 'cacao') { state.rows = []; $('join').hidden = false; $('rowCount').textContent = 'Waiting to join'; table($('bronzeTable'), [], 12); }
+    if (state.mode === 'cacao') { state.rows = []; $('join').hidden = false; updateBronzeView(); clearSilver(); }
   }
   $('clock').textContent = result.active ? `${String(Math.floor(result.secondsLeft / 60)).padStart(2, '0')}:${String(result.secondsLeft % 60).padStart(2, '0')} left` : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
   $('joinButton').disabled = !result.active;
@@ -221,13 +272,35 @@ async function init() {
     const data = await post('/api/session', { name: $('name').value });
     state.token = data.token; state.rows = data.rows; state.cacaoRows = data.rows; state.sessionStart = data.status.startsAt; $('join').hidden = true;
     sessionStorage.setItem('gba-contest-session', JSON.stringify({ token: data.token, start: data.status.startsAt }));
-    $('rowCount').textContent = `${data.rows.length} raw rows`; table($('bronzeTable'), data.rows, 12);
-    notice('You joined the Cacao contest. Edit the SQL, then Run Query.');
+    updateBronzeView(); clearSilver();
+    notice('You joined the Cacao contest. Inspect Bronze, then run Silver and Gold separately.');
   }));
-  $('runButton').addEventListener('click', () => action(() => runLocal()));
+  $('runSilverButton').addEventListener('click', () => action(() => runSilver()));
+  $('runGoldButton').addEventListener('click', () => action(() => runGold()));
   $('verifyButton').addEventListener('click', () => action(() => verify()));
   $('resetButton').addEventListener('click', () => action(() => mode(state.mode)));
-  $('demoFixButton')?.addEventListener('click', () => { $('silverSql').value = riceCorrection; notice('Rice correction loaded. Run Query, then Verify Accuracy.'); });
+  $('demoFixButton')?.addEventListener('click', () => { $('silverSql').value = riceCorrection; clearSilver(); notice('Rice correction loaded. Run Silver, then Gold, then Verify Accuracy.'); });
+  $('silverSql').addEventListener('input', clearSilver);
+  $('goldSql').addEventListener('input', clearGold);
+  $('pinBronzeButton').addEventListener('click', () => toggleBronze($('bronzePanel').hidden));
+  $('closeBronzeButton').addEventListener('click', () => toggleBronze(false));
+  let drag = null;
+  $('bronzePanelHandle').addEventListener('pointerdown', event => {
+    if (event.button !== 0 || event.target.closest('button')) return;
+    const rect = $('bronzePanel').getBoundingClientRect();
+    drag = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    $('bronzePanel').style.left = `${rect.left}px`;
+    $('bronzePanel').style.top = `${rect.top}px`;
+    $('bronzePanel').style.right = 'auto';
+    $('bronzePanelHandle').setPointerCapture(event.pointerId);
+  });
+  $('bronzePanelHandle').addEventListener('pointermove', event => {
+    if (!drag) return;
+    const panel = $('bronzePanel');
+    panel.style.left = `${Math.max(0, Math.min(innerWidth - panel.offsetWidth, event.clientX - drag.x))}px`;
+    panel.style.top = `${Math.max(0, Math.min(innerHeight - 80, event.clientY - drag.y))}px`;
+  });
+  $('bronzePanelHandle').addEventListener('pointerup', () => { drag = null; });
   $('startButton')?.addEventListener('click', () => action(async () => { await post('/api/instructor/start', { pin: $('pin').value }); await refreshStatus(); notice('Contest started. Participants can now join.'); }));
   $('stopButton')?.addEventListener('click', () => action(async () => { const data = await post('/api/instructor/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); notice('Contest closed. Verified results are below.'); }));
   $('resultsButton')?.addEventListener('click', () => action(async () => showResults(await api('/api/results'))));
