@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
-const isInstructor = document.body.dataset.role === 'instructor';
-const state = { mode: isInstructor ? 'rice' : 'cacao', rows: [], cacaoRows: [], token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null };
+const isPresenter = document.body.dataset.role === 'presenter';
+const state = { mode: isPresenter ? 'rice' : 'cacao', rows: [], cacaoRows: [], token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null };
 try {
   const saved = JSON.parse(sessionStorage.getItem('gba-contest-session') || 'null');
   if (saved?.token && saved?.start) { state.token = saved.token; state.sessionStart = saved.start; }
@@ -234,18 +234,18 @@ async function verify() {
   $('scoreTitle').textContent = `${result.score}% accuracy${result.perfect ? ' · Perfect!' : ''}`;
   $('scoreItems').replaceChildren();
   for (const [name, points] of Object.entries(result.categories)) { const item = document.createElement('span'); item.textContent = `${name}: ${points}`; $('scoreItems').append(item); }
-  $('scoreNote').textContent = state.mode === 'rice' ? 'Instructor demo: correct the SQL and compare the dashboard.' : 'This score was calculated by the server from your submitted SQL. Category feedback does not show the hidden Cacao answer.';
+  $('scoreNote').textContent = state.mode === 'rice' ? 'Presenter demo: correct the SQL and compare the dashboard.' : 'This score was calculated by the server from your submitted SQL. Category feedback does not show the hidden Cacao answer.';
   notice(result.perfect ? 'Verified 100% accuracy.' : 'Verification found differences. Review the categories, edit SQL, and run it again.');
 }
 
 async function mode(mode) {
-  if (!isInstructor && mode !== 'cacao') throw new Error('The Rice demonstration is on the instructor page.');
+  if (!isPresenter && mode !== 'cacao') throw new Error('The Rice demonstration is on the presenter page.');
   state.mode = mode; state.rows = [];
   $('riceTab')?.classList.toggle('selected', mode === 'rice');
   $('cacaoTab')?.classList.toggle('selected', mode === 'cacao');
   $('join').hidden = mode !== 'cacao' || Boolean(state.token);
   if ($('demoFixButton')) $('demoFixButton').hidden = mode !== 'rice';
-  $('taskText').textContent = mode === 'rice' ? 'Instructor: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';
+  $('taskText').textContent = mode === 'rice' ? 'Presenter: run Silver, then Gold to show a believable wrong chart. Verify it, load the correction, and run both stages again.' : 'Contest: repair Silver filters and duplicates, run Silver, correct the Gold yield, then run Gold and verify.';
   $('silverSql').value = starters[mode].silver;
   $('goldSql').value = starters[mode].gold;
   clearSilver();
@@ -264,7 +264,7 @@ async function mode(mode) {
       state.token = null; state.cacaoRows = []; sessionStorage.removeItem('gba-contest-session');
       $('join').hidden = false; notice('Your session expired. Join the current contest again.');
     }
-  } else notice('The Cacao challenge opens when the instructor starts the contest. Join with a display name.');
+  } else notice(state.contest?.active ? 'The Cacao contest is live. Join with a display name.' : 'The Cacao challenge opens when the presenter starts the contest. Join with a display name.');
   updateBronzeView();
 }
 
@@ -276,7 +276,7 @@ async function refreshStatus() {
   }
   $('clock').textContent = result.active ? `${String(Math.floor(result.secondsLeft / 60)).padStart(2, '0')}:${String(result.secondsLeft % 60).padStart(2, '0')} left` : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
   $('joinButton').disabled = !result.active;
-  if (state.mode === 'cacao' && result.closed && !state.rows.length) notice('The contest has ended. Ask the instructor to reveal results.');
+  if (state.mode === 'cacao' && result.closed && !state.rows.length) notice('The contest has ended. Ask the presenter to reveal results.');
 }
 
 function showResults(data) {
@@ -293,7 +293,7 @@ async function init() {
   $('riceTab')?.addEventListener('click', () => action(() => mode('rice')));
   $('cacaoTab')?.addEventListener('click', () => action(() => mode('cacao')));
   $('joinButton').addEventListener('click', () => action(async () => {
-    if (!state.contest?.active) throw new Error('Wait for the instructor to start the contest.');
+    if (!state.contest?.active) throw new Error('Wait for the presenter to start the contest.');
     const data = await post('/api/session', { name: $('name').value });
     state.token = data.token; state.rows = data.rows; state.cacaoRows = data.rows; state.sessionStart = data.status.startsAt; $('join').hidden = true;
     sessionStorage.setItem('gba-contest-session', JSON.stringify({ token: data.token, start: data.status.startsAt }));
@@ -328,8 +328,8 @@ async function init() {
     panel.style.top = `${Math.max(0, Math.min(innerHeight - 80, event.clientY - drag.y))}px`;
   });
   $('bronzePanelHandle').addEventListener('pointerup', () => { drag = null; });
-  $('startButton')?.addEventListener('click', () => action(async () => { await post('/api/instructor/start', { pin: $('pin').value }); await refreshStatus(); notice('Contest started. Participants can now join.'); }));
-  $('stopButton')?.addEventListener('click', () => action(async () => { const data = await post('/api/instructor/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); notice('Contest closed. Verified results are below.'); }));
+  $('startButton')?.addEventListener('click', () => action(async () => { await post('/api/presenter/start', { pin: $('pin').value }); await refreshStatus(); notice('Contest started. Participants can now join.'); }));
+  $('stopButton')?.addEventListener('click', () => action(async () => { const data = await post('/api/presenter/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); notice('Contest closed. Verified results are below.'); }));
   $('resultsButton')?.addEventListener('click', () => action(async () => showResults(await api('/api/results'))));
   for (const editor of [$('silverSql'), $('goldSql')]) {
     editor.addEventListener('paste', event => { event.preventDefault(); notice('Paste is disabled in the SQL editor. AI help is welcome; type the changes yourself.'); });

@@ -9,7 +9,7 @@ import { fixture } from './server/data.mjs';
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '127.0.0.1';
-const pin = process.env.INSTRUCTOR_PIN || String(randomBytes(4).readUInt32BE() % 900000 + 100000);
+const pin = process.env.PRESENTER_PIN || process.env.INSTRUCTOR_PIN || String(randomBytes(4).readUInt32BE() % 900000 + 100000);
 const seed = process.env.CONTEST_SEED || randomBytes(8).toString('hex');
 const sessions = new Map();
 const entries = [];
@@ -42,7 +42,7 @@ function checkPin(candidate) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function instructorAllowed(req, candidate) {
+function presenterAllowed(req, candidate) {
   const key = req.socket.remoteAddress || 'unknown';
   const failed = (failedPins.get(key) || []).filter(at => Date.now() - at < 10 * 60 * 1000);
   if (failed.length >= 5) throw new Error('Too many PIN attempts. Try again later.');
@@ -75,6 +75,8 @@ function ranking() {
 
 const assets = new Map([
   ['/', ['public/student.html', 'text/html; charset=utf-8']],
+  ['/presenter', ['public/index.html', 'text/html; charset=utf-8']],
+  ['/presenter/', ['public/index.html', 'text/html; charset=utf-8']],
   ['/instructor', ['public/index.html', 'text/html; charset=utf-8']],
   ['/instructor/', ['public/index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['public/app.js', 'text/javascript; charset=utf-8']],
@@ -104,7 +106,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && path === '/api/session') {
       const input = await body(req);
-      if (!status().active) return json(res, 403, { error: 'Wait for the instructor to start the contest.' });
+      if (!status().active) return json(res, 403, { error: 'Wait for the presenter to start the contest.' });
       const name = String(input.name || '').trim().replace(/[<>]/g, '').slice(0, 24);
       if (!name) return json(res, 400, { error: 'Enter a display name to join.' });
       if ([...sessions.values()].some(session => session.name.toLowerCase() === name.toLowerCase())) return json(res, 409, { error: 'That display name is in use. Choose another.' });
@@ -133,16 +135,16 @@ const server = http.createServer(async (req, res) => {
       const result = await verifyInWorker({ mode, stage, silverSql: input.silverSql, goldSql: input.goldSql, seed });
       return json(res, 200, result);
     }
-    if (req.method === 'POST' && path === '/api/instructor/start') {
+    if (req.method === 'POST' && (path === '/api/presenter/start' || path === '/api/instructor/start')) {
       const input = await body(req);
-      if (!instructorAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect instructor PIN.' });
+      if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
       sessions.clear(); entries.length = 0;
       contest = { startsAt: Date.now(), endsAt: Date.now() + 15 * 60 * 1000, closed: false };
       return json(res, 200, status());
     }
-    if (req.method === 'POST' && path === '/api/instructor/stop') {
+    if (req.method === 'POST' && (path === '/api/presenter/stop' || path === '/api/instructor/stop')) {
       const input = await body(req);
-      if (!instructorAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect instructor PIN.' });
+      if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
       contest.closed = true;
       return json(res, 200, { ...status(), ...ranking() });
     }
@@ -156,5 +158,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, host, () => {
   console.log(`Classroom contest: http://${host}:${port}`);
-  console.log(process.env.INSTRUCTOR_PIN ? 'Instructor PIN loaded from the environment.' : `Instructor PIN: ${pin}`);
+  console.log(process.env.PRESENTER_PIN || process.env.INSTRUCTOR_PIN ? 'Presenter PIN loaded from the environment.' : `Presenter PIN: ${pin}`);
 });

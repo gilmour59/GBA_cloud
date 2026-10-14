@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Instructor · Data Engineering Challenge</title>
+  <title>Presenter · Data Engineering Challenge</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/vendor/sql-wasm.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
-<body data-role="instructor">
+<body data-role="presenter">
   <header class="hero">
     <div class="wrap hero-grid">
-      <div><p class="eyebrow">GBA CLOUD · INSTRUCTOR VIEW</p><h1>Data Engineering<br><span>Challenge</span></h1><p class="intro">Demonstrate the Rice pipeline, control the Cacao contest, and reveal verified results.</p></div>
+      <div><p class="eyebrow">GBA CLOUD · PRESENTER VIEW</p><h1>Data Engineering<br><span>Challenge</span></h1><p class="intro">Present the Rice demo, join the Cacao contest with your classmates, and reveal verified results.</p></div>
       <div class="schedule" aria-label="Classroom schedule"><div><strong>05</strong><span>min Rice demo</span></div><div><strong>15</strong><span>min Cacao contest</span></div><div><strong>05</strong><span>min results</span></div></div>
     </div>
   </header>
   <main class="wrap">
-    <div class="topline"><div class="mode-switch" role="group" aria-label="Dataset mode"><button id="riceTab" class="selected" type="button">🌾 Rice demo</button><button id="cacaoTab" type="button">🍫 Cacao preview</button></div><a class="student-link" href="/">Open student page ↗</a><div id="clock" class="clock">Demo mode</div></div>
+    <div class="topline"><div class="mode-switch" role="group" aria-label="Dataset mode"><button id="riceTab" class="selected" type="button">🌾 Rice demo</button><button id="cacaoTab" type="button">🍫 Cacao contest</button></div><a class="student-link" href="/">Open student page ↗</a><div id="clock" class="clock">Demo mode</div></div>
     <div id="notice" class="notice" role="status">Loading the simulation…</div>
     <section id="join" class="card join" hidden><div><p class="eyebrow">PARTICIPANT ENTRY</p><h2>Join the Cacao challenge</h2><p>Enter a display name. AI help is allowed; type SQL changes yourself.</p></div><div class="join-controls"><label for="name">Display name</label><input id="name" maxlength="24" autocomplete="nickname" placeholder="Your first name"><button id="joinButton" class="primary" type="button">Join contest</button></div></section>
     <section class="steps card"><p class="eyebrow">YOUR PIPELINE</p><div class="step-list"><span><b>1</b> Bronze · inspect</span><span><b>2</b> Silver · clean</span><span><b>3</b> Gold · summarize</span><span><b>4</b> Dashboard · verify</span></div><p id="taskText" class="task"></p></section>
@@ -29,7 +29,7 @@
     <section class="results-grid"><div class="card"><div class="section-head"><div><p class="eyebrow">QUERY OUTPUT</p><h2>Silver & Gold</h2></div></div><p id="silverCount" class="muted">Run Silver to see the cleaned rows.</p><h3>Silver preview</h3><div class="table-wrap"><table id="silverTable"></table></div><h3>Quarantine preview</h3><div class="table-wrap"><table id="quarantineTable"></table></div><h3>Gold summary</h3><div class="table-wrap"><table id="goldTable"></table></div></div><div class="card dashboard"><p class="eyebrow">DASHBOARD</p><h2>Production by place</h2><p class="muted">This chart uses your current Gold query, including any mistakes.</p><div id="chart" class="chart empty">Run Gold to draw the chart.</div><p id="yieldNote" class="muted"></p></div></section>
     <p class="completion-note">Stage checks help you fix each query. The challenge is complete when <strong>Verify Accuracy reaches 100%</strong>. Only Verify Accuracy submits a contest result.</p>
     <section id="accuracy" class="card accuracy" hidden><p class="eyebrow">VERIFICATION</p><h2 id="scoreTitle"></h2><div id="scoreItems" class="score-items"></div><p id="scoreNote" class="muted"></p></section>
-    <section class="card instructor"><details><summary>Instructor controls and results</summary><div class="instructor-controls"><label for="pin">Instructor PIN</label><input id="pin" type="password" autocomplete="off" inputmode="numeric" placeholder="PIN shown in server terminal"><button id="startButton" type="button">Start 15-minute contest</button><button id="stopButton" type="button">End contest & reveal</button><button id="resultsButton" type="button">Show results</button></div><div id="leaderboard" role="status" aria-live="polite"></div></details></section>
+    <section class="card presenter"><details><summary>Presenter controls and results</summary><div class="presenter-controls"><label for="pin">Presenter PIN</label><input id="pin" type="password" autocomplete="off" inputmode="numeric" placeholder="PIN shown in server terminal"><button id="startButton" type="button">Start 15-minute contest</button><button id="stopButton" type="button">End contest & reveal</button><button id="resultsButton" type="button">Show results</button></div><div id="leaderboard" role="status" aria-live="polite"></div></details></section>
   </main>
   <aside id="bronzePanel" class="bronze-panel" aria-label="Pinned Bronze data" hidden><div id="bronzePanelHandle" class="bronze-panel-head"><div><strong>Bronze reference</strong><span id="bronzePanelCount"></span></div><button id="closeBronzeButton" type="button" aria-label="Close pinned Bronze data">✕</button></div><div class="table-wrap"><table id="bronzePinnedTable"></table></div></aside>
   <footer class="wrap">Synthetic classroom exercise · Bronze → Silver → Gold → Dashboard</footer>
