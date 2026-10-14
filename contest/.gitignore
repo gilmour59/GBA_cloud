@@ -1,3 +1,5 @@
 node_modules/
 .env
 *.log
+contest-state.json
+contest-state.json.*.tmp

@@ -14,6 +14,8 @@ PRESENTER_PIN=choose-a-private-pin npm start
 
 Open `http://127.0.0.1:3000/presenter` for the **presenter view**. Share `http://127.0.0.1:3000/` for the **student Cacao view**. For classmates on the same network, run with `HOST=0.0.0.0` and replace `127.0.0.1` in the student URL with the presenter computer's LAN address. Set `PORT` if needed. Keep the presenter PIN private. If `PRESENTER_PIN` is omitted, the server generates one and prints it in the terminal. The SQL engine is served from the installed package, so the app does not depend on a CDN during class.
 
+**Online class:** Follow [Put the classroom contest online](DEPLOY_ONLINE.md) to deploy one Railway service with a persistent volume. The online deployment keeps its timer, fixture seed, participants, and scores across restarts. Configure the private presenter PIN before sharing the public student URL.
+
 ## How to present
 
 Use the private Google Docs presenter guide for the timed Rice script, the complete Rice and Cacao answers, and the demo-to-contest handoff. The answer key is intentionally kept out of this public repository and does not appear on the Presenter screen.
@@ -29,7 +31,7 @@ Bronze rows include unique `row_uid`, business `record_id`, location, commodity,
 
 Cacao adds two validation rules that Rice does not exercise: the year must be 2025 and the business `record_id` must not be blank. The contest page states these rules. Applying only the Rice cleaning changes to Cacao will therefore miss records, even after changing the crop and place names. The Gold target calculation is deliberately shared so the demo teaches that concept.
 
-Verification assigns 40 points to Silver membership and values, 15 to quarantine, 35 to Gold totals/yield, and 10 to the top-place dashboard facts. Partial category scores are rounded down, so a near match cannot become 100%. The browser shows category feedback but does not receive expected Cacao results. The server uses a private per-process fixture seed unless `CONTEST_SEED` is set for a reproducible rehearsal.
+Verification assigns 40 points to Silver membership and values, 15 to quarantine, 35 to Gold totals/yield, and 10 to the top-place dashboard facts. Partial category scores are rounded down, so a near match cannot become 100%. The browser shows category feedback but does not receive expected Cacao results. The server generates a private fixture seed unless `CONTEST_SEED` is set for a reproducible rehearsal; when `STATE_FILE` is configured, the seed survives restarts.
 
 **Stage completion:** Silver is correct at 40/40 valid rows and values plus 15/15 excluded rows. Gold is correct at 35/35 totals and yield plus 10/10 top-place facts. The Gold stage check uses the canonical Silver rows to isolate Gold query mistakes; the final Verify Accuracy replays both submitted queries together. The Cacao fixture varies area and yield together so the deliberately wrong row-average Gold starter remains detectably different from the required area-weighted yield.
 
@@ -38,8 +40,8 @@ Verification assigns 40 points to Silver membership and values, 15 to quarantine
 - Browser: local `sql.js` WebAssembly engine executes the edited, read-only Silver and Gold `SELECT` queries. The chart uses those actual Gold rows.
 - The Bronze reference panel stays visible while scrolling within the app. Browsers do not guarantee that a web page can stay above other desktop windows.
 - Server: the same SQL engine replays submitted SQL on canonical data in a time-limited worker, compares the result with independently computed expected rows, and records verified scores and receipt times. The browser's score and clock are never accepted.
-- Sessions and scores are kept in server memory. Restarting the server resets the current contest, so keep it running throughout class. A browser refresh restores that tab's session while the server remains running.
-- The presenter view is a separate page. The earlier `/instructor` link and `INSTRUCTOR_PIN` setting still work for existing setups. The PIN protects contest start/stop and is rate limited, including if someone discovers the presenter URL. Display names are classroom labels, not verified identities; the presenter should supervise name use. For an internet-facing event, add authentication, durable storage, TLS, and deployment-specific resource controls before using this prototype.
+- Locally, sessions and scores stay in server memory unless `STATE_FILE` is set. On Railway, `STATE_FILE` must point to a mounted volume; the server saves its fixture seed, sessions, timer, and verified scores after every change. A browser refresh restores that tab's session while the same contest remains available.
+- The presenter view is a separate page. The earlier `/instructor` link and `INSTRUCTOR_PIN` setting still work for existing setups. The PIN protects contest start/stop and is rate limited, including if someone discovers the presenter URL. Display names are classroom labels, not verified identities; the presenter should supervise name use. For a larger public event, add participant authentication and deployment-specific resource controls.
 - Paste blocking applies only to SQL editors. It is a classroom deterrent and cannot establish whether a student used AI or copied outside the app.
 
 Run `npm test` to check fixture invariants, the 100% solution path, the valid-but-wrong path, and read-only query restrictions.

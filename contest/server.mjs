@@ -5,16 +5,25 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
 import { fixture } from './server/data.mjs';
+import { loadState, saveState } from './server/state.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || '127.0.0.1';
+const host = process.env.HOST || (process.env.RAILWAY_ENVIRONMENT ? '0.0.0.0' : '127.0.0.1');
 const pin = process.env.PRESENTER_PIN || process.env.INSTRUCTOR_PIN || String(randomBytes(4).readUInt32BE() % 900000 + 100000);
-const seed = process.env.CONTEST_SEED || randomBytes(8).toString('hex');
-const sessions = new Map();
-const entries = [];
+const stateFile = process.env.STATE_FILE;
+if (process.env.RAILWAY_ENVIRONMENT && !stateFile) throw new Error('Set STATE_FILE to a mounted Railway volume path before deploying.');
+const saved = loadState(stateFile, process.env.CONTEST_SEED || randomBytes(8).toString('hex'));
+const seed = saved.seed;
+const sessions = new Map(saved.sessions);
+const entries = saved.entries;
 const failedPins = new Map();
-let contest = { startsAt: null, endsAt: null, closed: false };
+let contest = saved.contest;
+
+function persist() {
+  saveState(stateFile, { seed, sessions: [...sessions], entries, contest });
+}
+persist();
 
 function json(res, status, value) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
@@ -112,6 +121,7 @@ const server = http.createServer(async (req, res) => {
       if ([...sessions.values()].some(session => session.name.toLowerCase() === name.toLowerCase())) return json(res, 409, { error: 'That display name is in use. Choose another.' });
       const token = randomUUID();
       sessions.set(token, { name, joinedAt: Date.now() });
+      persist();
       return json(res, 200, { token, rows: fixture('cacao', seed), status: status() });
     }
     if (req.method === 'POST' && path === '/api/verify') {
@@ -123,6 +133,7 @@ const server = http.createServer(async (req, res) => {
       if (mode === 'cacao' && receivedAt < contest.endsAt && !contest.closed) {
         const session = sessions.get(input.token);
         entries.push({ token: input.token, name: session.name, score: result.score, at: receivedAt, order: entries.length });
+        persist();
       }
       return json(res, 200, result);
     }
@@ -140,12 +151,14 @@ const server = http.createServer(async (req, res) => {
       if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
       sessions.clear(); entries.length = 0;
       contest = { startsAt: Date.now(), endsAt: Date.now() + 15 * 60 * 1000, closed: false };
+      persist();
       return json(res, 200, status());
     }
     if (req.method === 'POST' && (path === '/api/presenter/stop' || path === '/api/instructor/stop')) {
       const input = await body(req);
       if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
       contest.closed = true;
+      persist();
       return json(res, 200, { ...status(), ...ranking() });
     }
     if (req.method === 'GET' && path === '/api/results') {
