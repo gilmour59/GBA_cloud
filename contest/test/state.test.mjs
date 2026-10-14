@@ -10,6 +10,7 @@ test('contest state keeps the fixture seed, timer, sessions, and scores across a
   const file = join(dir, 'data', 'state.json');
   try {
     const initial = loadState(file, 'seed-one');
+    initial.pin = '123456789012';
     initial.contest = { startsAt: 1000, endsAt: 901000, closed: false };
     initial.sessions.push(['token-one', { name: 'Student', joinedAt: 1100 }]);
     initial.entries.push({ token: 'token-one', name: 'Student', score: 100, at: 1200, order: 0 });

@@ -41,7 +41,7 @@ export function fixture(mode, seed = 'sample') {
     rows[82].record_id = '  ';
     rows[89].location = 'North Orchard';
     rows[97].commodity = 'COCOA';
-    rows[105].harvested_area_ha = 'n/a';
+    rows[105].harvested_area_ha = '3ha';
     rows[112].production_mt = '';
   }
   rows.push({ ...rows[60], row_uid: rule.count + 1 });

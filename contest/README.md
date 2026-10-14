@@ -14,7 +14,7 @@ PRESENTER_PIN=choose-a-private-pin npm start
 
 Open `http://127.0.0.1:3000/presenter` for the **presenter view**. Share `http://127.0.0.1:3000/` for the **student Cacao view**. For classmates on the same network, run with `HOST=0.0.0.0` and replace `127.0.0.1` in the student URL with the presenter computer's LAN address. Set `PORT` if needed. Keep the presenter PIN private. If `PRESENTER_PIN` is omitted, the server generates one and prints it in the terminal. The SQL engine is served from the installed package, so the app does not depend on a CDN during class.
 
-**Online class:** Follow [Put the classroom contest online](DEPLOY_ONLINE.md) to deploy one Railway service with a persistent volume. The online deployment keeps its timer, fixture seed, participants, and scores across restarts. Configure the private presenter PIN before sharing the public student URL.
+**Online class:** Follow [Put the classroom contest online](DEPLOY_ONLINE.md) to deploy one Railway service with a persistent volume. The online deployment keeps its timer, fixture seed, participants, scores, and generated presenter PIN across restarts. Set a private `PRESENTER_PIN` or retrieve the generated 12-digit PIN from private service logs before the live round.
 
 ## How to present
 
@@ -29,7 +29,7 @@ Use the private Google Docs presenter guide for the timed Rice script, the compl
 
 Bronze rows include unique `row_uid`, business `record_id`, location, commodity, harvested area, production, and year. Valid Silver rows have a known nonblank place, the correct crop after trimming/case normalization, numeric production at least zero, numeric harvested area greater than zero, and one row per `record_id` (keep the lowest `row_uid`). All excluded rows are the quarantine set. Gold groups by place, sums production and harvested area, and calculates area-weighted yield as `SUM(production_mt) / SUM(harvested_area_ha)`, rounded to two decimals.
 
-Cacao adds two validation rules that Rice does not exercise: the year must be 2025 and the business `record_id` must not be blank. It also has extra wrong crop/place values, an invalid area, and a missing production value. The contest page states the rules. Applying only the Rice cleaning changes to Cacao will therefore miss records, even after changing the crop and place names. The Gold target calculation is deliberately shared so the demo teaches that concept.
+Cacao adds two validation rules that Rice does not exercise: the year must be 2025 and the business `record_id` must not be blank. It also has extra wrong crop/place values, area text like `3ha` that SQLite can partly cast to a number, and a missing production value. The contest page states the rules. Applying only the Rice cleaning changes to Cacao will therefore miss records, even after changing the crop and place names. The Gold target calculation is deliberately shared so the demo teaches that concept.
 
 Verification assigns 40 points to Silver membership and values, 15 to quarantine, 35 to Gold totals/yield, and 10 to the top-place dashboard facts. Partial category scores are rounded down, so a near match cannot become 100%. The browser shows category feedback but does not receive expected Cacao results. The server generates a private fixture seed unless `CONTEST_SEED` is set for a reproducible rehearsal; when `STATE_FILE` is configured, the seed survives restarts.
 

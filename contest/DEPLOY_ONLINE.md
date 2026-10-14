@@ -12,12 +12,12 @@ Use one Railway **web service** for this Node app. The presenter and students th
    | Variable | Value |
    | --- | --- |
    | `STATE_FILE` | `/data/contest-state.json` |
-   | `PRESENTER_PIN` | Your own private, hard-to-guess PIN or passphrase |
+   | `PRESENTER_PIN` | Optional private passphrase; if omitted, the app generates a 12-digit PIN, saves it on the volume, and prints it in private deployment logs |
    | `HOST` | `0.0.0.0` |
    | `RAILWAY_RUN_UID` | `0` if the service cannot write to the mounted volume |
 
    Railway provides `PORT`; do not fix it to `3000`. If Railway does not detect the commands, use build command `npm ci` and start command `npm start`.
-5. In **Settings → Networking → Public Networking**, generate a Railway domain. Open `/api/status` on that domain to confirm the server is live, then open `/presenter` and `/`.
+5. In **Settings → Networking → Public Networking**, generate a Railway domain. Open `/api/status` on that domain to confirm the server is live, then open `/presenter` and `/`. If you skipped `PRESENTER_PIN`, read the generated PIN in the service deployment logs and keep it private.
 
 ## Rehearse before class
 

@@ -10,10 +10,10 @@ import { loadState, saveState } from './server/state.mjs';
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || (process.env.RAILWAY_ENVIRONMENT ? '0.0.0.0' : '127.0.0.1');
-const pin = process.env.PRESENTER_PIN || process.env.INSTRUCTOR_PIN || String(randomBytes(4).readUInt32BE() % 900000 + 100000);
 const stateFile = process.env.STATE_FILE;
 if (process.env.RAILWAY_ENVIRONMENT && !stateFile) throw new Error('Set STATE_FILE to a mounted Railway volume path before deploying.');
 const saved = loadState(stateFile, process.env.CONTEST_SEED || randomBytes(8).toString('hex'));
+const pin = process.env.PRESENTER_PIN || process.env.INSTRUCTOR_PIN || saved.pin || String(randomBytes(6).readUIntBE(0, 6) % 900000000000 + 100000000000);
 const seed = saved.seed;
 const sessions = new Map(saved.sessions);
 const entries = saved.entries;
@@ -21,7 +21,7 @@ const failedPins = new Map();
 let contest = saved.contest;
 
 function persist() {
-  saveState(stateFile, { seed, sessions: [...sessions], entries, contest });
+  saveState(stateFile, { seed, pin, sessions: [...sessions], entries, contest });
 }
 persist();
 
