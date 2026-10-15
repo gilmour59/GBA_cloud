@@ -288,9 +288,9 @@ async function mode(mode) {
         state.cacaoRows = data.rows; state.cacaoQuality = data.quality; $('name').value = data.name;
       }
       state.rows = state.cacaoRows; state.quality = state.cacaoQuality;
-      $('join').hidden = true; notice('Cacao data loaded. The 15-minute timer is controlled by the server.');
+      $('join').hidden = true; notice('Cacao data loaded. The contest stays open until the presenter ends it.');
     } catch {
-      state.token = null; state.cacaoRows = []; state.cacaoQuality = null; sessionStorage.removeItem('gba-contest-session');
+      state.token = null; state.cacaoRows = []; state.cacaoQuality = null; state.quality = null; sessionStorage.removeItem('gba-contest-session');
       $('join').hidden = false; notice('Your session expired. Join the current contest again.');
     }
   } else notice(state.contest?.active ? 'The Cacao contest is live. Join with a display name.' : 'The Cacao challenge opens when the presenter starts the contest. Join with a display name.');
@@ -303,10 +303,14 @@ async function refreshStatus() {
     const reference = await api('/api/reference'); drawReference(reference.gold); state.referenceLoaded = true;
   }
   if (state.token && state.sessionStart !== result.startsAt) {
-    state.token = null; state.cacaoRows = []; state.cacaoQuality = null; sessionStorage.removeItem('gba-contest-session');
+    state.token = null; state.cacaoRows = []; state.cacaoQuality = null; state.quality = null; sessionStorage.removeItem('gba-contest-session');
     if (state.mode === 'cacao') { state.rows = []; $('join').hidden = false; updateBronzeView(); clearSilver(); }
   }
-  $('clock').textContent = result.active ? `${String(Math.floor(result.secondsLeft / 60)).padStart(2, '0')}:${String(result.secondsLeft % 60).padStart(2, '0')} left` : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
+  $('clock').textContent = result.active ? 'Contest live' : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
+  if (isPresenter) {
+    $('startButton').disabled = result.active;
+    $('stopButton').disabled = !result.active;
+  }
   $('joinButton').disabled = !result.active;
   if (state.mode === 'cacao' && result.closed && !state.rows.length) notice('The contest has ended. Ask the presenter to reveal results.');
 }
@@ -368,7 +372,7 @@ async function init() {
     editor.addEventListener('drop', event => event.preventDefault());
     editor.addEventListener('contextmenu', event => event.preventDefault());
   }
-  setInterval(() => refreshStatus().catch(() => {}), 1000);
+  setInterval(() => refreshStatus().catch(() => {}), 3000);
 }
 
 init().catch(error => notice(`Could not start the SQL engine: ${error.message}`, true));

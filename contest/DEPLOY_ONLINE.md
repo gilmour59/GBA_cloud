@@ -6,7 +6,7 @@ Use one Railway **web service** for this Node app. The presenter and students th
 
 1. In Railway, create a project from the GitHub repository `gilmour59/GBA_cloud` and select its `main` branch.
 2. In the service's **Settings**, set **Root Directory** to `/contest`. Keep it at **one replica** so every request uses the same contest process and state file.
-3. Attach a Railway **volume** to this service, mounted at `/data`. The app saves its fixture seed, contest timer, participants, and verified scores there. Do this before starting a real contest.
+3. Attach a Railway **volume** to this service, mounted at `/data`. The app saves its fixture seed, contest state, participants, and verified scores there. Do this before starting a real contest.
 4. Add these service variables:
 
    | Variable | Value |
@@ -22,14 +22,14 @@ Use one Railway **web service** for this Node app. The presenter and students th
 ## Rehearse before class
 
 - Open the student URL on a second device using mobile data to confirm it works outside your own network.
-- Start a rehearsal contest, join with a test name, run and verify queries, then end it and inspect results. When you click **Start 15-minute contest** again for class, previous participants and scores are cleared.
+- Start a rehearsal contest, join with a test name, run and verify queries, then end it and inspect results. When you click **Start Cacao contest** again for class, previous participants and scores are cleared.
 - Restart the service once during rehearsal and check that the contest status, participant session, and results remain available. The browser tab can restore its session while the server state survives in the volume.
 - Avoid changing code or Railway settings during the live 25-minute activity. A deployment or volume operation can briefly interrupt requests even though the saved state is retained.
 - Keep the complete Cacao answer key in your private Google Doc; it is not in the public repository.
 
 ## How the live round works
 
-Show Rice on `/presenter`. At the handoff, enter the PIN and click **Start 15-minute contest**. Share only the root student URL. Classmates join using unique display names. The countdown and official verification use server time. After expiry, or after **End contest & reveal**, click **Show results** on the presenter page.
+Show Rice on `/presenter`. The contest controls are near the top of that page. At the handoff, enter the PIN and click **Start Cacao contest**. Share only the root student URL. Classmates join using unique display names. There is no automatic time limit: click **End contest & reveal** when you are ready, then **Show results**. Official verification and submission order use server time.
 
 ## Important limits
 

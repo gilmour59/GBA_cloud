@@ -2,17 +2,17 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node
 import { dirname } from 'node:path';
 
 export function loadState(file, newSeed) {
-  if (!file) return { seed: newSeed, sessions: [], entries: [], contest: { startsAt: null, endsAt: null, closed: false } };
+  if (!file) return { seed: newSeed, sessions: [], entries: [], contest: { startsAt: null, closed: false } };
   let saved;
   try {
     saved = JSON.parse(readFileSync(file, 'utf8'));
   } catch (error) {
-    if (error.code === 'ENOENT') return { seed: newSeed, sessions: [], entries: [], contest: { startsAt: null, endsAt: null, closed: false } };
+    if (error.code === 'ENOENT') return { seed: newSeed, sessions: [], entries: [], contest: { startsAt: null, closed: false } };
     throw new Error(`Cannot read contest state at ${file}: ${error.message}`);
   }
   if (!saved || typeof saved.seed !== 'string' || !Array.isArray(saved.sessions) || !Array.isArray(saved.entries) ||
       !saved.contest || typeof saved.contest !== 'object' || !('closed' in saved.contest) ||
-      !('startsAt' in saved.contest) || !('endsAt' in saved.contest)) {
+      !('startsAt' in saved.contest)) {
     throw new Error(`Contest state at ${file} has an unexpected format; refusing to reset scores.`);
   }
   return saved;

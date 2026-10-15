@@ -1,6 +1,6 @@
 # Data Engineering Challenge
 
-A standalone, Databricks-inspired classroom app for the **5-minute Rice demo → 15-minute Cacao contest → 5-minute reveal**. All crop records and place names are synthetic. It does not require a Databricks account or use the separate 437-row notebook exercise.
+A standalone, Databricks-inspired classroom app for the suggested **5-minute Rice demo → Cacao contest → 5-minute reveal**. The presenter decides when to end the contest; the app imposes no contest time limit. All crop records and place names are synthetic. It does not require a Databricks account or use the separate 437-row notebook exercise.
 
 ## Run
 
@@ -14,7 +14,7 @@ PRESENTER_PIN=choose-a-private-pin npm start
 
 Open `http://127.0.0.1:3000/presenter` for the **presenter view**. Share `http://127.0.0.1:3000/` for the **student Cacao view**. For classmates on the same network, run with `HOST=0.0.0.0` and replace `127.0.0.1` in the student URL with the presenter computer's LAN address. Set `PORT` if needed. Keep the presenter PIN private. If `PRESENTER_PIN` is omitted, the server generates one and prints it in the terminal. The SQL engine is served from the installed package, so the app does not depend on a CDN during class.
 
-**Online class:** Follow [Put the classroom contest online](DEPLOY_ONLINE.md) to deploy one Railway service with a persistent volume. The online deployment keeps its timer, fixture seed, participants, scores, and generated presenter PIN across restarts. Set a private `PRESENTER_PIN` or retrieve the generated 12-digit PIN from private service logs before the live round.
+**Online class:** Follow [Put the classroom contest online](DEPLOY_ONLINE.md) to deploy one Railway service with a persistent volume. The online deployment keeps its contest state, fixture seed, participants, scores, and generated presenter PIN across restarts. Set a private `PRESENTER_PIN` or retrieve the generated 12-digit PIN from private service logs before the live round.
 
 ## How to present
 
@@ -22,8 +22,8 @@ Use the private Google Docs presenter guide for the timed Rice script, the compl
 
 1. On the **presenter view**, open **Rice demo**. Click **Run Silver**, then **Run Gold**: the starter SQL executes and draws a plausible but incorrect dashboard. Click **Verify Accuracy** to show that execution is not correctness.
 2. Click **Load Rice correction**, then run Silver and Gold again before verifying. The server should report 100%. Show the changed production chart and quarantined count.
-3. In **Presenter controls**, start the 15-minute contest. You can switch to Cacao and join as a contestant too. Classmates open the **student URL**, enter a unique display name, and join **Cacao contest**. They can click **Pin Bronze** for a floating, draggable reference table while editing. Their Silver SQL runs independently of Gold; rerun Silver after changing it, then run Gold and verify. Each stage has a separate **Check Silver** or **Check Gold** action that reports whether it is correct and shows category points. A successful Run only means the SQL executed. The stage checks do not submit a contest entry; only **Verify Accuracy** records an official score, and 100% completes the challenge. Their SQL runs in an isolated browser SQLite database. They may ask AI for help but must type changes into the editor.
-4. At time expiry, or by using **End contest & reveal**, open **Show results**. The first server-verified 100% submission wins ₱50 GCash. If no entry reaches 100%, the highest verified score wins. Equal scores use the earlier server receipt time. The server, not the browser, determines the score and time.
+3. In **Contest controls** near the top of the presenter page, start Cacao when you are ready. The Cacao tab lets you join as a contestant too; the separate student URL provides the same contest workspace without presenter controls. Classmates open the **student URL**, enter a unique display name, and join. They can click **Pin Bronze** for a floating, draggable reference table while editing. Their Silver SQL runs independently of Gold; rerun Silver after changing it, then run Gold and verify. Each stage has a separate **Check Silver** or **Check Gold** action that reports whether it is correct and shows category points. A successful Run only means the SQL executed. The stage checks do not submit a contest entry; only **Verify Accuracy** records an official score, and 100% completes the challenge. Their SQL runs in an isolated browser SQLite database. They may ask AI for help but must type changes into the editor.
+4. Click **End contest & reveal** when you are ready, then **Show results**. The first server-verified 100% submission wins ₱50 GCash. If no entry reaches 100%, the highest verified score wins. Equal scores use the earlier server receipt time. The server, not the browser, determines the score and submission order.
 
 ## Scoring contract
 
@@ -41,7 +41,7 @@ Verification assigns 40 points to Silver membership and values, 15 to quarantine
 - The completed Rice dashboard is visible beside the presenter's current dashboard during the demo. The completed Cacao dashboard appears only after the contest closes, so students can compare their results at the reveal.
 - The Bronze reference panel stays visible while scrolling within the app. Browsers do not guarantee that a web page can stay above other desktop windows.
 - Server: the same SQL engine replays submitted SQL on canonical data in a time-limited worker, compares the result with independently computed expected rows, and records verified scores and receipt times. The browser's score and clock are never accepted.
-- Locally, sessions and scores stay in server memory unless `STATE_FILE` is set. On Railway, `STATE_FILE` must point to a mounted volume; the server saves its fixture seed, sessions, timer, and verified scores after every change. A browser refresh restores that tab's session while the same contest remains available.
+- Locally, sessions and scores stay in server memory unless `STATE_FILE` is set. On Railway, `STATE_FILE` must point to a mounted volume; the server saves its fixture seed, sessions, contest state, and verified scores after every change. A browser refresh restores that tab's session while the same contest remains available.
 - The presenter view is a separate page. The earlier `/instructor` link and `INSTRUCTOR_PIN` setting still work for existing setups. The PIN protects contest start/stop and is rate limited, including if someone discovers the presenter URL. Display names are classroom labels, not verified identities; the presenter should supervise name use. For a larger public event, add participant authentication and deployment-specific resource controls.
 - Paste blocking applies only to SQL editors. It is a classroom deterrent and cannot establish whether a student used AI or copied outside the app.
 

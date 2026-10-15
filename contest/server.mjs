@@ -19,6 +19,8 @@ const sessions = new Map(saved.sessions);
 const entries = saved.entries;
 const failedPins = new Map();
 let contest = saved.contest;
+// Preserve the closed state of contests that expired before the time limit was removed.
+if (contest.startsAt && contest.endsAt && Date.now() >= contest.endsAt) contest.closed = true;
 
 function persist() {
   saveState(stateFile, { seed, pin, sessions: [...sessions], entries, contest });
@@ -40,9 +42,8 @@ async function body(req) {
 }
 
 function status() {
-  const now = Date.now();
-  const active = Boolean(contest.startsAt && !contest.closed && now >= contest.startsAt && now < contest.endsAt);
-  return { active, started: Boolean(contest.startsAt), closed: contest.closed || Boolean(contest.endsAt && now >= contest.endsAt), secondsLeft: active ? Math.max(0, Math.ceil((contest.endsAt - now) / 1000)) : 0, startsAt: contest.startsAt, endsAt: contest.endsAt };
+  const active = Boolean(contest.startsAt && !contest.closed);
+  return { active, started: Boolean(contest.startsAt), closed: contest.closed, startsAt: contest.startsAt };
 }
 
 function checkPin(candidate) {
@@ -133,8 +134,9 @@ const server = http.createServer(async (req, res) => {
       const mode = input.mode === 'rice' ? 'rice' : 'cacao';
       const receivedAt = Date.now();
       if (mode === 'cacao' && (!status().active || !sessions.has(input.token))) return json(res, 403, { error: 'Join an active contest before verifying.' });
+      const contestStart = contest.startsAt;
       const result = await verifyInWorker({ mode, silverSql: input.silverSql, goldSql: input.goldSql, seed });
-      if (mode === 'cacao' && receivedAt < contest.endsAt && !contest.closed) {
+      if (mode === 'cacao' && !contest.closed && contest.startsAt === contestStart && sessions.has(input.token)) {
         const session = sessions.get(input.token);
         entries.push({ token: input.token, name: session.name, score: result.score, at: receivedAt, order: entries.length });
         persist();
@@ -153,14 +155,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && (path === '/api/presenter/start' || path === '/api/instructor/start')) {
       const input = await body(req);
       if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
+      if (status().active) return json(res, 409, { error: 'End the current contest before starting a new one.' });
       sessions.clear(); entries.length = 0;
-      contest = { startsAt: Date.now(), endsAt: Date.now() + 15 * 60 * 1000, closed: false };
+      contest = { startsAt: Date.now(), closed: false };
       persist();
       return json(res, 200, status());
     }
     if (req.method === 'POST' && (path === '/api/presenter/stop' || path === '/api/instructor/stop')) {
       const input = await body(req);
       if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
+      if (!status().active) return json(res, 409, { error: 'Start the contest before ending it.' });
       contest.closed = true;
       persist();
       return json(res, 200, { ...status(), ...ranking() });
