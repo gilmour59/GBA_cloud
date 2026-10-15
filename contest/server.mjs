@@ -101,10 +101,18 @@ const assets = new Map([
   ['/', ['public/student.html', 'text/html; charset=utf-8']],
   ['/presenter', ['public/index.html', 'text/html; charset=utf-8']],
   ['/presenter/', ['public/index.html', 'text/html; charset=utf-8']],
+  ['/monitor', ['public/monitor.html', 'text/html; charset=utf-8']],
+  ['/monitor/', ['public/monitor.html', 'text/html; charset=utf-8']],
   ['/instructor', ['public/index.html', 'text/html; charset=utf-8']],
   ['/instructor/', ['public/index.html', 'text/html; charset=utf-8']],
   ['/app.js', ['public/app.js', 'text/javascript; charset=utf-8']],
+  ['/monitor.js', ['public/monitor.js', 'text/javascript; charset=utf-8']],
   ['/style.css', ['public/style.css', 'text/css; charset=utf-8']],
+  ['/rene.gif', ['public/rene.gif', 'image/gif']],
+  ['/ricardo-1.gif', ['public/ricardo-1.gif', 'image/gif']],
+  ['/ricardo-2.gif', ['public/ricardo-2.gif', 'image/gif']],
+  ['/ricardo-3.gif', ['public/ricardo-3.gif', 'image/gif']],
+  ['/ricardo-4.gif', ['public/ricardo-4.gif', 'image/gif']],
   ['/vendor/sql-wasm.js', ['node_modules/sql.js/dist/sql-wasm.js', 'text/javascript; charset=utf-8']],
   ['/vendor/sql-wasm.wasm', ['node_modules/sql.js/dist/sql-wasm.wasm', 'application/wasm']]
 ]);
