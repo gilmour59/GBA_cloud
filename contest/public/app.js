@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const isPresenter = document.body.dataset.role === 'presenter';
-const state = { mode: isPresenter ? 'rice' : 'cacao', rows: [], cacaoRows: [], quality: null, cacaoQuality: null, token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null, referenceLoaded: false };
+const state = { mode: isPresenter ? 'rice' : 'cacao', rows: [], cacaoRows: [], quality: null, cacaoQuality: null, token: null, sessionStart: null, sql: null, silverRun: null, lastRun: null, contest: null, referenceLoaded: false, monitoring: false };
 try {
   const saved = JSON.parse(sessionStorage.getItem('gba-contest-session') || 'null');
   if (saved?.token && saved?.start) { state.token = saved.token; state.sessionStart = saved.start; }
@@ -324,6 +324,12 @@ function showResults(data) {
   if (data.entries?.length) table(host.appendChild(document.createElement('table')), data.entries.map(entry => ({ name: entry.name, score: `${entry.score}%`, time: new Date(entry.at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }) })), 100);
 }
 
+async function refreshMonitor() {
+  const { participants } = await post('/api/presenter/monitor', { pin: $('pin').value });
+  $('monitorSummary').textContent = participants.length ? `${participants.length} participant${participants.length === 1 ? '' : 's'} joined. Stage checks and verified scores update automatically.` : 'No participants have joined this round yet.';
+  table($('monitorTable'), participants.map(person => ({ name: person.name, silver_check: person.silver, gold_check: person.gold, best_verified_score: person.bestScore == null ? '—' : `${person.bestScore}%`, verifications: person.verifications })));
+}
+
 async function action(callback) { try { await callback(); } catch (error) { notice(error.message, true); } }
 
 async function init() {
@@ -367,15 +373,22 @@ async function init() {
     panel.style.top = `${Math.max(0, Math.min(innerHeight - 80, event.clientY - drag.y))}px`;
   });
   $('bronzePanelHandle').addEventListener('pointerup', () => { drag = null; });
-  $('startButton')?.addEventListener('click', () => action(async () => { await post('/api/presenter/start', { pin: $('pin').value }); await refreshStatus(); notice('Contest started. Participants can now join.'); }));
-  $('stopButton')?.addEventListener('click', () => action(async () => { const data = await post('/api/presenter/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); notice('Contest closed. Verified results are below.'); }));
+  $('startButton')?.addEventListener('click', () => action(async () => { await post('/api/presenter/start', { pin: $('pin').value }); await refreshStatus(); state.monitoring = true; await refreshMonitor().catch(error => { state.monitoring = false; $('monitorSummary').textContent = error.message; }); notice('Contest started. Participants can now join.'); }));
+  $('stopButton')?.addEventListener('click', () => action(async () => { const data = await post('/api/presenter/stop', { pin: $('pin').value }); await refreshStatus(); showResults(data); await refreshMonitor().catch(error => { state.monitoring = false; $('monitorSummary').textContent = error.message; }); notice('Contest closed. Verified results are below.'); }));
   $('resultsButton')?.addEventListener('click', () => action(async () => showResults(await api('/api/results'))));
+  $('monitorButton')?.addEventListener('click', () => action(async () => {
+    if (!$('pin').value.trim()) throw new Error('Enter the presenter PIN to view participants.');
+    await refreshMonitor(); state.monitoring = true; notice('Live participant progress is updating.');
+  }));
   for (const editor of [$('silverSql'), $('goldSql')]) {
     editor.addEventListener('paste', event => { event.preventDefault(); notice('Paste is disabled in the SQL editor. AI help is welcome; type the changes yourself.'); });
     editor.addEventListener('drop', event => event.preventDefault());
     editor.addEventListener('contextmenu', event => event.preventDefault());
   }
-  setInterval(() => refreshStatus().catch(() => {}), 3000);
+  setInterval(() => {
+    refreshStatus().catch(() => {});
+    if (state.monitoring) refreshMonitor().catch(error => { state.monitoring = false; $('monitorSummary').textContent = error.message; });
+  }, 3000);
 }
 
 init().catch(error => notice(`Could not start the SQL engine: ${error.message}`, true));

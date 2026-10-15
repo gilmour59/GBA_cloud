@@ -83,6 +83,20 @@ function ranking() {
   return { winner: winner ? { name: winner.name, score: winner.score, at: winner.at } : null, entries: best.map(({ name, score, at }) => ({ name, score, at })) };
 }
 
+function participantProgress() {
+  return [...sessions].map(([token, session]) => {
+    const scores = entries.filter(entry => entry.token === token).map(entry => entry.score);
+    return {
+      name: session.name,
+      joinedAt: session.joinedAt,
+      silver: session.silverCorrect == null ? 'Not checked' : session.silverCorrect ? 'Correct' : 'Needs work',
+      gold: session.goldCorrect == null ? 'Not checked' : session.goldCorrect ? 'Correct' : 'Needs work',
+      bestScore: scores.length ? scores.reduce((best, score) => Math.max(best, score), 0) : null,
+      verifications: scores.length
+    };
+  }).sort((a, b) => a.joinedAt - b.joinedAt);
+}
+
 const assets = new Map([
   ['/', ['public/student.html', 'text/html; charset=utf-8']],
   ['/presenter', ['public/index.html', 'text/html; charset=utf-8']],
@@ -149,8 +163,18 @@ const server = http.createServer(async (req, res) => {
       const stage = input.stage;
       if (stage !== 'silver' && stage !== 'gold') return json(res, 400, { error: 'Choose Silver or Gold to check.' });
       if (mode === 'cacao' && (!status().active || !sessions.has(input.token))) return json(res, 403, { error: 'Join an active contest before checking accuracy.' });
+      const contestStart = contest.startsAt;
       const result = await verifyInWorker({ mode, stage, silverSql: input.silverSql, goldSql: input.goldSql, seed });
+      if (mode === 'cacao' && status().active && contest.startsAt === contestStart && sessions.has(input.token)) {
+        sessions.get(input.token)[`${stage}Correct`] = result.correct;
+        persist();
+      }
       return json(res, 200, result);
+    }
+    if (req.method === 'POST' && path === '/api/presenter/monitor') {
+      const input = await body(req);
+      if (!presenterAllowed(req, input.pin)) return json(res, 403, { error: 'Incorrect presenter PIN.' });
+      return json(res, 200, { participants: participantProgress() });
     }
     if (req.method === 'POST' && (path === '/api/presenter/start' || path === '/api/instructor/start')) {
       const input = await body(req);

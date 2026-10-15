@@ -31,6 +31,8 @@ Use one Railway **web service** for this Node app. The presenter and students th
 
 Show Rice on `/presenter`. The contest controls are near the top of that page. At the handoff, enter the PIN and click **Start Cacao contest**. Share only the root student URL. Classmates join using unique display names. There is no automatic time limit: click **End contest & reveal** when you are ready, then **Show results**. Official verification and submission order use server time.
 
+Use **View live progress** with the presenter PIN to monitor joined names, checked Silver and Gold stages, and best verified scores while the contest is open. Starting the round also opens this view automatically. A participant's local Run Silver/Run Gold clicks are not sent to the server; their stage checks and official verifications are.
+
 ## Important limits
 
 The volume is required for reliable restart recovery. Without `STATE_FILE`, this app refuses to start on Railway. The state file is designed for **one app replica**, not concurrent replicas writing to the same file. Display names are classroom labels rather than authenticated identities, so supervise name use. For a larger public event, move sessions and scores to a database and add participant authentication.
