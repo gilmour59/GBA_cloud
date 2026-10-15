@@ -309,7 +309,10 @@ async function refreshStatus() {
   $('clock').textContent = result.active ? 'Contest live' : result.closed ? 'Contest ended' : state.mode === 'rice' ? 'Demo mode' : 'Waiting for start';
   if (isPresenter) {
     $('startButton').disabled = result.active;
+    $('startButton').textContent = result.active ? 'Contest is live' : 'Start Cacao contest';
     $('stopButton').disabled = !result.active;
+    $('resultsButton').disabled = !result.closed;
+    $('contestControlStatus').textContent = result.active ? 'Cacao contest is live. Students can join now. End it when you are ready to reveal results.' : result.closed ? 'Contest ended. Show results, or start a new round.' : 'Contest has not started. Start Cacao after the Rice demo.';
   }
   $('joinButton').disabled = !result.active;
   if (state.mode === 'cacao' && result.closed && !state.rows.length) notice('The contest has ended. Ask the presenter to reveal results.');
